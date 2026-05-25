@@ -263,8 +263,8 @@
         let generatedZips = []; // Holds data for JSZip
 
         // Constants for Canvas Size
-        const CANVAS_W = 850;
-        const CANVAS_H = 500;
+        const CANVAS_W = 760;
+        const CANVAS_H = 460;
 
         // --- Load Logos from Assets Folder ---
         function loadLogosFromAssets() {
@@ -761,7 +761,7 @@
 
             // 4. Draw User Information Text
             const textX = 240;
-            const maxTextWidth = 310;
+            const maxTextWidth = 255;
             ctx.fillStyle = '#111827'; 
             
             // Name Wrapping Logic
@@ -804,8 +804,8 @@
             const roleText = getTruncatedText((data.role || '').toUpperCase(), maxTextWidth);
             const companyText = getTruncatedText((data.company || '').toUpperCase(), maxTextWidth);
 
-            ctx.fillText(roleText, textX, startY + 65 + offset);
-            ctx.fillText(companyText, textX, startY + 105 + offset);
+            ctx.fillText(roleText, textX, startY + 85 + offset);
+            ctx.fillText(companyText, textX, startY + 130 + offset);
 
             // Detailed Fields
             ctx.font = 'bold 18px Arial, sans-serif';
@@ -835,11 +835,11 @@
             ctx.fillText((data.terminals || '').toUpperCase(), valueX, yPos.term);
 
             // 5. Draw The Grid Block
-            drawGridToContext(ctx, 550, startY, data.grid);
+            drawGridToContext(ctx, 520, startY, data.grid);
         }
 
         function drawGridToContext(ctx, startX, startY, gridValues) {
-            const boxSize = 42;
+            const boxSize = 38;
             const gap = 8;
             
             // Background colors map
