@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant ID Card Generator</title>
-    <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip for packaging multiple images into a ZIP file -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* Custom styles to ensure the canvas scales nicely on smaller screens */
         canvas {
             max-width: 100%;
             height: auto;
@@ -36,125 +36,128 @@
         input[type="file"] {
             display: none;
         }
+
+        .tab-btn.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .tab-btn {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen py-10 px-4 font-sans text-gray-800">
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         
         <!-- Header -->
         <div class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">ID Card Generator</h1>
-            <p class="text-gray-500">Create and download your custom ID card instantly.</p>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Bulk ID Card Generator</h1>
+            <p class="text-gray-500">Create single ID cards or generate hundreds at once from a CSV file.</p>
         </div>
 
         <div class="flex flex-col lg:flex-row gap-8">
             
-            <!-- Left Column: Input Form -->
-            <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <h2 class="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">Card Details</h2>
+            <!-- Left Column: Controls -->
+            <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
                 
-                <div class="space-y-4">
+                <!-- Tabs -->
+                <div class="flex gap-2 mb-6">
+                    <button id="tabSingle" onclick="switchTab('single')" class="tab-btn active flex-1 py-2 rounded-lg font-semibold border transition">Single ID</button>
+                    <button id="tabBulk" onclick="switchTab('bulk')" class="tab-btn flex-1 py-2 rounded-lg font-semibold border transition">Bulk Generate</button>
+                </div>
+
+                <!-- SINGLE ID FORM -->
+                <div id="singleForm" class="space-y-4">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Single Card Details</h2>
+                    
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 1</label>
-                            <input type="text" id="header1" value="AERODROME ENTRY PERMIT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                            <input type="text" id="header1" value="ENTRY PERMIT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 2</label>
-                            <input type="text" id="header2" value="BUREAU OF CIVIL AVIATION SECURITY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
-                        </div>
-                    </div>
-
-                    <!-- Header Logos - Auto-loaded from Assets -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Header Left Logo</label>
-                            <div class="px-4 py-2 border border-gray-300 rounded-lg bg-blue-50 text-sm text-gray-600">
-                                ✓ Left Logo Loaded from Assets
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Header Right Logo</label>
-                            <div class="px-4 py-2 border border-gray-300 rounded-lg bg-blue-50 text-sm text-gray-600">
-                                ✓ Right Logo Loaded from Assets
-                            </div>
+                            <input type="text" id="header2" value="BUREAU OF CIVIL AVIATION SECURITY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" id="fullName" value="SHISHUPAL KUMAR" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name (Max 30 chars)</label>
+                        <input type="text" id="fullName" value="SHISHUPAL KUMAR" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                     </div>
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role / Job Title</label>
-                        <input type="text" id="roleTitle" value="LOADER" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                        <input type="text" id="roleTitle" value="LOADER" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                     </div>
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                        <input type="text" id="companyName" value="BFS IND PVT LT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                        <input type="text" id="companyName" value="BFS IND PVT LT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">AEP No.</label>
-                        <input type="text" id="aepNo" value="DEL2602060106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                        <input type="text" id="aepNo" value="DEL2602060106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
-                            <input type="text" id="validFrom" value="15/05/2026" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                            <input type="text" id="validFrom" value="15/05/2026" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Valid Upto</label>
-                            <input type="text" id="validUpto" value="02/03/2029" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                            <input type="text" id="validUpto" value="02/03/2029" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Airports</label>
-                            <input type="text" id="airports" value="DEL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                            <input type="text" id="airports" value="DEL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Terminals</label>
-                            <input type="text" id="terminals" value="TERMINAL-3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition uppercase">
+                            <input type="text" id="terminals" value="TERMINAL-3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
                         </div>
                     </div>
 
                     <!-- Custom Grid Block -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Right Grid Values</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Grid Values (Top Right)</label>
                         <div class="grid grid-cols-4 gap-2">
-                            <input type="text" id="g0" value="A" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-orange-50">
-                            <input type="text" id="g1" value="D" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-orange-50">
-                            <input type="text" id="g2" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-orange-50">
-                            <input type="text" id="g3" value="Si" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-orange-50">
-                            
-                            <input type="text" id="g4" value="Sd" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g5" value="P" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g6" value="B" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g7" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            
-                            <input type="text" id="g8" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g9" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g10" value="I" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            <input type="text" id="g11" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                            
-                            <input type="text" id="g12" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-green-50">
-                            <input type="text" id="g13" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-green-50">
-                            <input type="text" id="g14" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-green-50">
-                            <input type="text" id="g15" value="" maxlength="3" class="px-2 py-1 border border-gray-300 rounded-md text-center uppercase focus:ring-2 focus:ring-blue-500 outline-none bg-green-50">
+                            <!-- Row 1 Orange -->
+                            <input type="text" id="g0" value="A" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-orange-50">
+                            <input type="text" id="g1" value="D" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-orange-50">
+                            <input type="text" id="g2" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-orange-50">
+                            <input type="text" id="g3" value="Si" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-orange-50">
+                            <!-- Row 2 White -->
+                            <input type="text" id="g4" value="Sd" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g5" value="P" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g6" value="B" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g7" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <!-- Row 3 White -->
+                            <input type="text" id="g8" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g9" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g10" value="I" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <input type="text" id="g11" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm">
+                            <!-- Row 4 Green -->
+                            <input type="text" id="g12" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-green-50">
+                            <input type="text" id="g13" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-green-50">
+                            <input type="text" id="g14" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-green-50">
+                            <input type="text" id="g15" value="" class="px-2 py-1 border border-gray-300 rounded text-center uppercase text-sm bg-green-50">
                         </div>
                     </div>
 
-                    <!-- File Uploads -->
                     <div class="pt-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
                         <label class="custom-file-upload">
-                            <span id="photoLabel">Upload Photo (JPG/PNG)</span>
+                            <span id="photoLabel">Upload Photo</span>
                             <input type="file" id="photoInput" accept="image/*">
                         </label>
                     </div>
@@ -166,40 +169,120 @@
                             <input type="file" id="sigInput" accept="image/*">
                         </label>
                     </div>
+
+                    <button onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md">
+                        Download ID Card
+                    </button>
                 </div>
 
-                <!-- Action Button -->
-                <button onclick="downloadID()" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Download ID Card
-                </button>
+                <!-- BULK GENERATE FORM -->
+                <div id="bulkForm" class="hidden space-y-6">
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-gray-800">1. Upload Image Folder</h2>
+                        <p class="text-xs text-gray-500 mb-2">Select the folder containing all Profile Photos and Signatures referenced in your CSV.</p>
+                        <label class="custom-file-upload border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                            <span id="bulkFolderLabel" class="font-medium">Select Images Folder</span>
+                            <!-- webkitdirectory allows selecting a whole folder -->
+                            <input type="file" id="bulkFolderInput" webkitdirectory directory multiple>
+                        </label>
+                        <div id="folderStats" class="text-xs text-green-600 mt-1 font-medium hidden"></div>
+                    </div>
+
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-gray-800">2. Upload CSV Data</h2>
+                        <p class="text-xs text-gray-500 mb-2">Upload the spreadsheet (saved as .CSV). Columns must be: AEP No, Name, Role, Company, Valid Upto, Valid From, Photo Name, Sig Name, Terminals, Airports, Grid1-16</p>
+                        <label class="custom-file-upload border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100">
+                            <span id="bulkCsvLabel" class="font-medium">Upload .CSV File</span>
+                            <input type="file" id="bulkCsvInput" accept=".csv">
+                        </label>
+                    </div>
+
+                    <button id="processBulkBtn" onclick="processBulkData()" class="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg shadow-md cursor-not-allowed" disabled>
+                        Process & Generate Bulk IDs
+                    </button>
+
+                    <!-- Error Log -->
+                    <div id="errorLog" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg max-h-40 overflow-y-auto">
+                        <h3 class="text-red-800 text-sm font-bold mb-1">Errors (Skipped Rows)</h3>
+                        <ul id="errorList" class="text-xs text-red-600 space-y-1 list-disc pl-4"></ul>
+                    </div>
+                </div>
             </div>
 
-            <!-- Right Column: Live Preview (Canvas) -->
-            <div class="w-full lg:w-2/3 flex flex-col items-center justify-center bg-gray-50 p-6 rounded-2xl border border-gray-200 overflow-hidden">
-                <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Live Preview</div>
+            <!-- Right Column: Preview Area -->
+            <div class="w-full lg:w-2/3 flex flex-col bg-gray-50 p-6 rounded-2xl border border-gray-200">
                 
-                <!-- The Canvas (Updated dimensions to match physical ID ratio) -->
-                <canvas id="idCanvas" width="740" height="480"></canvas>
-                
-                <p class="mt-4 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.<br>No data is sent to any server.</p>
+                <!-- SINGLE PREVIEW -->
+                <div id="singlePreviewContainer" class="flex flex-col items-center justify-center h-full">
+                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Live Preview</div>
+                    <canvas id="idCanvas" width="850" height="500"></canvas>
+                    <p class="mt-4 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
+                </div>
+
+                <!-- BULK PREVIEW -->
+                <div id="bulkPreviewContainer" class="hidden flex-col h-full w-full">
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Generated IDs Preview</h3>
+                            <p id="bulkProgressText" class="text-sm text-gray-500">Awaiting data...</p>
+                        </div>
+                        <button id="downloadZipBtn" onclick="downloadAllZip()" class="hidden bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
+                            Download All (ZIP)
+                        </button>
+                    </div>
+
+                    <!-- CSS Grid to hold miniaturized previews of generated cards -->
+                    <div id="bulkGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto p-2" style="max-height: 600px;">
+                        <!-- Generated images will populate here -->
+                    </div>
+                </div>
             </div>
             
         </div>
     </div>
 
     <script>
-        // --- Setup & State ---
-        const canvas = document.getElementById('idCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // State variables to hold image data
+        // --- State Variables ---
+        // Single mode
         let photoImage = null;
         let signatureImage = null;
+        
+        // Header Logos (Constant for both modes)
         let logoLeftImage = null;
         let logoRightImage = null;
 
-        // --- DOM Elements ---
+        // Bulk mode
+        let bulkImageFiles = new Map(); // Maps filename to File object
+        let bulkCsvData = [];
+        let generatedZips = []; // Holds data for JSZip
+
+        // Constants for Canvas Size
+        const CANVAS_W = 850;
+        const CANVAS_H = 500;
+
+        // --- Load Logos from Assets Folder ---
+        function loadLogosFromAssets() {
+            // Load left logo
+            const leftLogo = new Image();
+            leftLogo.onload = function() {
+                logoLeftImage = leftLogo;
+                drawSingleID();
+            };
+            leftLogo.src = 'Assests/left_logo.jpeg';
+
+            // Load right logo
+            const rightLogo = new Image();
+            rightLogo.onload = function() {
+                logoRightImage = rightLogo;
+                drawSingleID();
+            };
+            rightLogo.src = 'Assests/right_logo.jpeg';
+        }
+
+        // --- DOM Elements (Single Mode) ---
+        const singleCanvas = document.getElementById('idCanvas');
+        const singleCtx = singleCanvas.getContext('2d');
+        
         const inputs = {
             header1: document.getElementById('header1'),
             header2: document.getElementById('header2'),
@@ -213,137 +296,431 @@
             terminals: document.getElementById('terminals')
         };
         
-        // Grab all 16 grid inputs dynamically
         const gridInputs = [];
         for (let i = 0; i < 16; i++) {
             gridInputs.push(document.getElementById('g' + i));
         }
 
-        const fileInputs = {
-            photo: document.getElementById('photoInput'),
-            signature: document.getElementById('sigInput')
-        };
-
-        const labels = {
-            photo: document.getElementById('photoLabel'),
-            signature: document.getElementById('sigLabel')
-        };
-
-        // --- Event Listeners ---
-        // Redraw canvas whenever text changes
-        Object.values(inputs).forEach(input => {
-            input.addEventListener('input', drawID);
-        });
+        // --- Event Listeners (Single Mode) ---
+        Object.values(inputs).forEach(input => input.addEventListener('input', drawSingleID));
+        gridInputs.forEach(input => input.addEventListener('input', drawSingleID));
         
-        // Add listeners for all the dynamic grid inputs
-        gridInputs.forEach(input => {
-            input.addEventListener('input', drawID);
-        });
+        document.getElementById('photoInput').addEventListener('change', (e) => handleSingleUpload(e, 'photo'));
+        document.getElementById('sigInput').addEventListener('change', (e) => handleSingleUpload(e, 'signature'));
 
-        // Handle Image Uploads
-        fileInputs.photo.addEventListener('change', (e) => handleImageUpload(e, 'photo'));
-        fileInputs.signature.addEventListener('change', (e) => handleImageUpload(e, 'signature'));
+        // --- STREAMING_CHUNK:Tab Switching Logic ---
+        function switchTab(mode) {
+            const btnSingle = document.getElementById('tabSingle');
+            const btnBulk = document.getElementById('tabBulk');
+            const formSingle = document.getElementById('singleForm');
+            const formBulk = document.getElementById('bulkForm');
+            const prevSingle = document.getElementById('singlePreviewContainer');
+            const prevBulk = document.getElementById('bulkPreviewContainer');
 
-        // --- Image Upload Handler ---
-        function handleImageUpload(event, type) {
+            if (mode === 'single') {
+                btnSingle.classList.add('active', 'bg-blue-600', 'text-white');
+                btnSingle.classList.remove('bg-gray-200', 'text-gray-700');
+                btnBulk.classList.remove('active', 'bg-blue-600', 'text-white');
+                btnBulk.classList.add('bg-gray-200', 'text-gray-700');
+                
+                formSingle.classList.remove('hidden');
+                formBulk.classList.add('hidden');
+                prevSingle.classList.remove('hidden');
+                prevBulk.classList.add('hidden');
+                prevBulk.classList.remove('flex'); // Remove flex when hidden
+            } else {
+                btnBulk.classList.add('active', 'bg-blue-600', 'text-white');
+                btnBulk.classList.remove('bg-gray-200', 'text-gray-700');
+                btnSingle.classList.remove('active', 'bg-blue-600', 'text-white');
+                btnSingle.classList.add('bg-gray-200', 'text-gray-700');
+
+                formBulk.classList.remove('hidden');
+                formSingle.classList.add('hidden');
+                prevBulk.classList.remove('hidden');
+                prevBulk.classList.add('flex'); // Needs flex to layout properly
+                prevSingle.classList.add('hidden');
+            }
+        }
+
+        // --- STREAMING_CHUNK:Single Mode Specific Logic ---
+        function handleSingleUpload(event, type) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Update UI label to show file selected
-            if (type === 'photo') labels.photo.innerText = "✓ Photo selected";
-            if (type === 'signature') labels.signature.innerText = "✓ Signature selected";
-            if (type === 'logoLeft') labels.logoLeft.innerText = "✓ Left Logo Loaded";
-            if (type === 'logoRight') labels.logoRight.innerText = "✓ Right Logo Loaded";
+            if (type === 'photo') document.getElementById('photoLabel').innerText = "✓ Photo selected";
+            if (type === 'signature') document.getElementById('sigLabel').innerText = "✓ Signature selected";
 
             const reader = new FileReader();
-            
-            // Read file into a data URL
             reader.onload = function(e) {
                 const img = new Image();
-                
-                // Once image is loaded into memory, trigger a redraw
                 img.onload = function() {
                     if (type === 'photo') photoImage = img;
                     if (type === 'signature') signatureImage = img;
-                    if (type === 'logoLeft') logoLeftImage = img;
-                    if (type === 'logoRight') logoRightImage = img;
-                    drawID(); // Update the preview
+                    drawSingleID(); 
                 }
                 img.src = e.target.result;
             }
-            
             reader.readAsDataURL(file);
         }
 
-        // --- Core Drawing Logic ---
-        function drawID() {
-            // 1. Clear & Background
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff'; // White background
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function drawSingleID() {
+            // Gather data from single form
+            let gVals = [];
+            for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
 
-            // Add subtle border to canvas
+            const cardData = {
+                header1: inputs.header1.value,
+                header2: inputs.header2.value,
+                fullName: inputs.fullName.value,
+                role: inputs.role.value,
+                company: inputs.company.value,
+                aepNo: inputs.aepNo.value,
+                validFrom: inputs.validFrom.value,
+                validUpto: inputs.validUpto.value,
+                airports: inputs.airports.value,
+                terminals: inputs.terminals.value,
+                grid: gVals,
+                photo: photoImage,
+                signature: signatureImage
+            };
+
+            // Call the universal render engine onto the visible single canvas
+            renderCardToContext(singleCtx, cardData);
+        }
+
+        function downloadSingleID() {
+            drawSingleID();
+            const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const link = document.createElement('a');
+            link.href = singleCanvas.toDataURL('image/png');
+            link.download = `${safeName}_id_card.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- STREAMING_CHUNK:Bulk Mode UI and File Handling Logic ---
+        document.getElementById('bulkFolderInput').addEventListener('change', (e) => {
+            const files = e.target.files;
+            bulkImageFiles.clear(); // Reset map
+            
+            for(let i=0; i<files.length; i++) {
+                const file = files[i];
+                const fullName = file.name.toLowerCase();
+                
+                // Get the name without the extension
+                const lastDot = fullName.lastIndexOf('.');
+                const baseName = lastDot !== -1 ? fullName.substring(0, lastDot) : fullName;
+                
+                // Store both the full name and the base name so it can match either way
+                bulkImageFiles.set(fullName, file);
+                bulkImageFiles.set(baseName, file);
+            }
+            
+            const label = document.getElementById('bulkFolderLabel');
+            const stats = document.getElementById('folderStats');
+            label.innerText = `✓ Loaded ${files.length} images`;
+            stats.innerText = `Folder indexed successfully.`;
+            stats.classList.remove('hidden');
+            
+            checkBulkReady();
+        });
+
+        document.getElementById('bulkCsvInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('bulkCsvLabel').innerText = `✓ ${file.name}`;
+            
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                parseCSV(evt.target.result);
+                checkBulkReady();
+            };
+            reader.readAsText(file);
+        });
+
+        // Helper: Parse raw CSV text into the bulkCsvData 2D array
+        function parseCSV(str) {
+            bulkCsvData = [];
+            let row = [];
+            let inQuotes = false;
+            let val = "";
+            
+            for (let i = 0; i < str.length; i++) {
+                let cc = str[i], nc = str[i+1];
+                if (cc === '"' && inQuotes && nc === '"') { 
+                    val += '"'; i++; // Handle escaped quotes inside a quoted string
+                } else if (cc === '"') { 
+                    inQuotes = !inQuotes; // Toggle inQuotes state
+                } else if (cc === ',' && !inQuotes) { 
+                    row.push(val); val = ""; // End of field
+                } else if ((cc === '\n' || cc === '\r') && !inQuotes) { // End of row
+                    if (cc === '\r' && nc === '\n') i++; // Skip \n if it's \r\n
+                    row.push(val);
+                    // Only add row if it has data (ignores blank lines at end of file)
+                    if (row.length > 1 || row[0] !== "") bulkCsvData.push(row);
+                    row = []; val = "";
+                } else { 
+                    val += cc; 
+                }
+            }
+            // Add the very last row if the file doesn't end with a newline
+            if (row.length > 1 || row[0] !== "") {
+                row.push(val);
+                bulkCsvData.push(row);
+            }
+            
+            // Remove the first row (Header row) so we don't try to make an ID card out of column names
+            if (bulkCsvData.length > 0) {
+                bulkCsvData.shift(); 
+            }
+        }
+
+        function checkBulkReady() {
+            const btn = document.getElementById('processBulkBtn');
+            if (bulkImageFiles.size > 0 && bulkCsvData.length > 0) {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
+        }
+
+        // Helper: Extract base filename (without extension) from full Windows/Mac paths in CSV
+        function getBaseNameFromPath(fullPath) {
+            if (!fullPath) return "";
+            // Replace backslashes with forward slashes, then split by slash and take last part
+            let filename = fullPath.replace(/\\/g, '/').split('/').pop().trim().toLowerCase();
+            
+            // Strip the extension if it exists so we just have the core name
+            const lastDot = filename.lastIndexOf('.');
+            if (lastDot !== -1) {
+                filename = filename.substring(0, lastDot);
+            }
+            
+            return filename;
+        }
+
+        // Helper: Load a File object into an Image object async
+        function fileToImage(file) {
+            return new Promise((resolve, reject) => {
+                if(!file) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => resolve(null);
+                    img.src = e.target.result;
+                }
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- STREAMING_CHUNK:Bulk Processing Engine ---
+        async function processBulkData() {
+            const btn = document.getElementById('processBulkBtn');
+            const progress = document.getElementById('bulkProgressText');
+            const grid = document.getElementById('bulkGrid');
+            const errorLog = document.getElementById('errorLog');
+            const errorList = document.getElementById('errorList');
+            const dlBtn = document.getElementById('downloadZipBtn');
+
+            // Reset UI
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            grid.innerHTML = '';
+            errorList.innerHTML = '';
+            errorLog.classList.add('hidden');
+            dlBtn.classList.add('hidden');
+            generatedZips = [];
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Process row by row
+            for (let i = 0; i < bulkCsvData.length; i++) {
+                const cols = bulkCsvData[i];
+                progress.innerText = `Processing row ${i + 1} of ${bulkCsvData.length}...`;
+                
+                try {
+                    // Extract data mapped to A-Z logic provided in prompt
+                    const aepNo = cols[0] || '';
+                    const fullName = cols[1] || '';
+                    const role = cols[2] || '';
+                    const company = cols[3] || '';
+                    const validUpto = cols[4] || '';
+                    const validFrom = cols[5] || '';
+                    const photoPath = cols[6] || '';
+                    const sigPath = cols[7] || '';
+                    const terminals = cols[8] || '';
+                    const airports = cols[9] || '';
+                    
+                    // Grid K to Z (indices 10 to 25)
+                    let gridVals = [];
+                    for(let k=10; k<=25; k++) {
+                        gridVals.push(cols[k] ? cols[k].trim() : '');
+                    }
+
+                    if (!fullName) throw new Error("Missing Name");
+                    
+                    // Match Images (using base names without extensions)
+                    const photoName = getBaseNameFromPath(photoPath);
+                    const sigName = getBaseNameFromPath(sigPath);
+
+                    const photoFile = bulkImageFiles.get(photoName);
+                    const sigFile = bulkImageFiles.get(sigName);
+
+                    if (!photoFile) throw new Error(`Photo missing in folder: ${photoPath}`);
+                    if (!sigFile) throw new Error(`Signature missing in folder: ${sigPath}`);
+
+                    // Await image loading
+                    const photoImg = await fileToImage(photoFile);
+                    const sigImg = await fileToImage(sigFile);
+
+                    // Compile Card Data
+                    const cardData = {
+                        header1: document.getElementById('header1').value, // Use universal headers from single form
+                        header2: document.getElementById('header2').value,
+                        fullName: fullName,
+                        role: role,
+                        company: company,
+                        aepNo: aepNo,
+                        validFrom: validFrom,
+                        validUpto: validUpto,
+                        airports: airports,
+                        terminals: terminals,
+                        grid: gridVals,
+                        photo: photoImg,
+                        signature: sigImg
+                    };
+
+                    // Create an off-screen canvas to render this specific ID
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = CANVAS_W;
+                    tempCanvas.height = CANVAS_H;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    renderCardToContext(tempCtx, cardData);
+
+                    // Save data for ZIP
+                    const dataUrl = tempCanvas.toDataURL('image/png');
+                    const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    generatedZips.push({
+                        filename: `${safeName}_${aepNo}.png`,
+                        base64: dataUrl.split(',')[1] // JSZip needs base64 without the mime header
+                    });
+
+                    // Add to UI Grid
+                    const imgNode = document.createElement('img');
+                    imgNode.src = dataUrl;
+                    imgNode.className = "w-full rounded shadow-sm border border-gray-200";
+                    grid.appendChild(imgNode);
+
+                    successCount++;
+
+                } catch (err) {
+                    // Log error for this row
+                    errorCount++;
+                    errorLog.classList.remove('hidden');
+                    const li = document.createElement('li');
+                    li.innerText = `Row ${i+1} (${cols[1] || 'Unknown'}): ${err.message}`;
+                    errorList.appendChild(li);
+                }
+            }
+
+            // Finish
+            btn.innerText = "Process & Generate Bulk IDs";
+            btn.disabled = false;
+            progress.innerText = `Done! Successfully generated ${successCount} IDs. ${errorCount > 0 ? `Failed: ${errorCount}` : ''}`;
+            
+            if (successCount > 0) {
+                dlBtn.classList.remove('hidden');
+            }
+        }
+
+        async function downloadAllZip() {
+            const btn = document.getElementById('downloadZipBtn');
+            btn.innerText = "Packaging ZIP...";
+            btn.disabled = true;
+
+            const zip = new JSZip();
+            
+            generatedZips.forEach(item => {
+                zip.file(item.filename, item.base64, {base64: true});
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                // Trigger download
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "Generated_ID_Cards.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                btn.innerText = "Download All (ZIP)";
+                btn.disabled = false;
+            });
+        }
+
+        // --- STREAMING_CHUNK:Universal Canvas Rendering Engine ---
+        // This function takes a context and a data object and draws the standardized ID
+        function renderCardToContext(ctx, data) {
+            // 1. Clear & Background
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Add border to canvas
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 4;
-            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+            ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
 
             // 2. Draw Header
             ctx.fillStyle = '#111827';
             ctx.textAlign = 'center';
             
-            // Calculate true visual center between the two logos 
-            // (Left logo is up to 140px wide, right is 80px, so true center shifts right)
-            const headerCenterX = 400; 
-            
-            // Header Line 1
             ctx.font = 'bold 30px Arial, sans-serif';
-            ctx.fillText(inputs.header1.value.toUpperCase(), headerCenterX, 45);
+            ctx.fillText((data.header1 || '').toUpperCase(), CANVAS_W / 2, 40);
             
-            // Header Line 2
             ctx.font = 'bold 18px Arial, sans-serif';
-            ctx.fillText(inputs.header2.value.toUpperCase(), headerCenterX, 75);
-            ctx.textAlign = 'left'; // Reset back to default left alignment
+            ctx.fillText((data.header2 || '').toUpperCase(), CANVAS_W / 2, 70);
+            ctx.textAlign = 'left';
 
             // Draw Header Logos
             if (logoLeftImage) {
                 const maxW = 140;
                 const maxH = 70;
                 const ratio = Math.min(maxW / logoLeftImage.width, maxH / logoLeftImage.height);
-                const w = logoLeftImage.width * ratio;
-                const h = logoLeftImage.height * ratio;
-                ctx.drawImage(logoLeftImage, 35, 10 + (70 - h)/2, w, h);
+                ctx.drawImage(logoLeftImage, 35, 10 + (70 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
             }
-
             if (logoRightImage) {
                 const maxW = 80;
                 const maxH = 70;
                 const ratio = Math.min(maxW / logoRightImage.width, maxH / logoRightImage.height);
                 const w = logoRightImage.width * ratio;
-                const h = logoRightImage.height * ratio;
-                ctx.drawImage(logoRightImage, canvas.width - 35 - w, 10 + (70 - h)/2, w, h);
+                ctx.drawImage(logoRightImage, CANVAS_W - 35 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
             }
 
-            // Header Separator Line
+            // Separator Line
             ctx.beginPath();
             ctx.moveTo(0, 90);
-            ctx.lineTo(canvas.width, 90);
+            ctx.lineTo(CANVAS_W, 90);
             ctx.strokeStyle = '#1f2937';
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Set a base Y offset for everything below the header
             const startY = 110;
 
-            // 3. Draw Profile Photo & Signature (Single Unified Border)
+            // 3. Draw Profile Photo & Signature
             const boxX = 35;
             const boxW = 190;
             const photoH = 240;
             const sigH = 80;
-            const totalBoxH = photoH + sigH;
 
-            // Draw Photo inside the unified box
-            if (photoImage) {
-                ctx.drawImage(photoImage, boxX, startY, boxW, photoH);
+            if (data.photo) {
+                ctx.drawImage(data.photo, boxX, startY, boxW, photoH);
             } else {
                 ctx.fillStyle = '#f3f4f6';
                 ctx.fillRect(boxX, startY, boxW, photoH);
@@ -354,12 +731,10 @@
                 ctx.textAlign = 'left';
             }
 
-            // Draw Signature inside the unified box
             const sigY = startY + photoH;
-            if (signatureImage) {
-                ctx.drawImage(signatureImage, boxX, sigY, boxW, sigH);
+            if (data.signature) {
+                ctx.drawImage(data.signature, boxX, sigY, boxW, sigH);
             } else {
-                // Placeholder squiggly line
                 ctx.beginPath();
                 ctx.moveTo(boxX + 20, sigY + 40);
                 ctx.quadraticCurveTo(boxX + 60, sigY + 10, boxX + 100, sigY + 40);
@@ -369,24 +744,27 @@
                 ctx.stroke();
             }
 
-            // Draw the SINGLE Unified Outer Border
-            ctx.strokeStyle = '#1f2937'; // Solid dark border
+            ctx.strokeStyle = '#1f2937';
             ctx.lineWidth = 2;
-            ctx.strokeRect(boxX, startY, boxW, totalBoxH);
+            ctx.strokeRect(boxX, startY, boxW, photoH + sigH);
+            
+            ctx.beginPath();
+            ctx.moveTo(boxX, sigY);
+            ctx.lineTo(boxX + boxW, sigY);
+            ctx.stroke();
 
-            // 4. Draw User Information Text (Middle)
+            // 4. Draw User Information Text
             const textX = 240;
-            const maxTextWidth = 255; // 550 (grid X) - 240 (text X) - 15 (padding) to prevent overlap
+            const maxTextWidth = 310;
             ctx.fillStyle = '#111827'; 
             
             // Name Wrapping Logic
             ctx.font = 'bold 26px Arial, sans-serif';
-            const nameText = inputs.fullName.value.toUpperCase();
+            const nameText = (data.fullName || '').toUpperCase();
             const words = nameText.split(' ');
             let line = '';
             let nameLines = [];
             
-            // Calculate how many words fit on each line
             for(let n = 0; n < words.length; n++) {
                 let testLine = line + words[n] + ' ';
                 let metrics = ctx.measureText(testLine);
@@ -398,35 +776,30 @@
                 }
             }
             nameLines.push(line.trim());
-            
-            // Cap at a maximum of 2 lines
             if (nameLines.length > 2) nameLines = nameLines.slice(0, 2);
             
-            // Draw Name lines
-            const nameStartY = startY + 35;
-            const nameLineHeight = 40;
+            const nameStartY = startY + 25;
+            const nameLineHeight = 35;
             for (let i = 0; i < nameLines.length; i++) {
                 ctx.fillText(nameLines[i], textX, nameStartY + (i * nameLineHeight));
             }
 
-            // Dynamically shift Role and Company down if Name takes 2 lines
             const offset = (nameLines.length - 1) * nameLineHeight;
 
-            // Helper to truncate text so it doesn't squeeze when overflowing
+            // Helper to truncate text
             function getTruncatedText(text, maxWidth) {
                 let truncated = text;
                 while (ctx.measureText(truncated).width > maxWidth && truncated.length > 0) {
-                    truncated = truncated.slice(0, -1); // Remove the last character until it fits
+                    truncated = truncated.slice(0, -1);
                 }
                 return truncated;
             }
 
-            // Draw Role and Company (Truncated to fit maxWidth)
-            const roleText = getTruncatedText(inputs.role.value.toUpperCase(), maxTextWidth);
-            const companyText = getTruncatedText(inputs.company.value.toUpperCase(), maxTextWidth);
+            const roleText = getTruncatedText((data.role || '').toUpperCase(), maxTextWidth);
+            const companyText = getTruncatedText((data.company || '').toUpperCase(), maxTextWidth);
 
-            ctx.fillText(roleText, textX, startY + 80 + offset);
-            ctx.fillText(companyText, textX, startY + 120 + offset);
+            ctx.fillText(roleText, textX, startY + 65 + offset);
+            ctx.fillText(companyText, textX, startY + 105 + offset);
 
             // Detailed Fields
             ctx.font = 'bold 18px Arial, sans-serif';
@@ -434,130 +807,74 @@
             const colonX = 380; 
             const valueX = 395;
 
-            // Tight vertical spacing for the details block
             const yPos = { aep: startY + 205, val: startY + 240, air: startY + 275, term: startY + 325 };
 
-            // AEP No
             ctx.fillText('AEP No.', labelX, yPos.aep);
             ctx.fillText(':', colonX, yPos.aep);
-            ctx.fillText(inputs.aepNo.value.toUpperCase(), valueX, yPos.aep);
+            ctx.fillText((data.aepNo || '').toUpperCase(), valueX, yPos.aep);
 
-            // VALIDITY
             ctx.fillText('VALIDITY', labelX, yPos.val);
             ctx.fillText(':', colonX, yPos.val);
-            const validityText = `${inputs.validFrom.value.toUpperCase()} TO ${inputs.validUpto.value.toUpperCase()}`;
+            const vFrom = (data.validFrom || '').toUpperCase();
+            const vUpto = (data.validUpto || '').toUpperCase();
+            const validityText = vFrom && vUpto ? `${vFrom} TO ${vUpto}` : (vFrom || vUpto);
             ctx.fillText(validityText, valueX, yPos.val);
 
-            // AIRPORTS
             ctx.fillText('AIRPORTS', labelX, yPos.air);
             ctx.fillText(':', colonX, yPos.air);
-            ctx.fillText(inputs.airports.value.toUpperCase(), valueX, yPos.air);
+            ctx.fillText((data.airports || '').toUpperCase(), valueX, yPos.air);
 
-            // TERMINALS
             ctx.fillText('TERMINALS', labelX, yPos.term);
             ctx.fillText(':', colonX, yPos.term);
-            ctx.fillText(inputs.terminals.value.toUpperCase(), valueX, yPos.term);
+            ctx.fillText((data.terminals || '').toUpperCase(), valueX, yPos.term);
 
-
-            // 5. Draw The Grid Block (Top Right)
-            drawGrid(520, startY);
+            // 5. Draw The Grid Block
+            drawGridToContext(ctx, 550, startY, data.grid);
         }
 
-        function drawGrid(startX, startY) {
-            const boxSize = 38;
+        function drawGridToContext(ctx, startX, startY, gridValues) {
+            const boxSize = 42;
             const gap = 8;
             
-            // Grid Layout definition pulling dynamically from the 16 form inputs
-            const gridData = [
-                // Row 1 (Orange boxes)
-                { text: gridInputs[0].value, bg: '#f5b041' }, { text: gridInputs[1].value, bg: '#f5b041' }, { text: gridInputs[2].value, bg: '#f5b041' }, { text: gridInputs[3].value, bg: '#f5b041' },
-                // Row 2 (White boxes)
-                { text: gridInputs[4].value, bg: '#ffffff' }, { text: gridInputs[5].value, bg: '#ffffff' }, { text: gridInputs[6].value, bg: '#ffffff' }, { text: gridInputs[7].value, bg: '#ffffff' },
-                // Row 3 (White boxes)
-                { text: gridInputs[8].value, bg: '#ffffff' }, { text: gridInputs[9].value, bg: '#ffffff' }, { text: gridInputs[10].value, bg: '#ffffff' }, { text: gridInputs[11].value, bg: '#ffffff' },
-                // Row 4 (Green boxes)
-                { text: gridInputs[12].value, bg: '#58d68d' }, { text: gridInputs[13].value, bg: '#58d68d' }, { text: gridInputs[14].value, bg: '#58d68d' }, { text: gridInputs[15].value, bg: '#58d68d' }
+            // Background colors map
+            const bgs = [
+                '#f5b041', '#f5b041', '#f5b041', '#f5b041',
+                '#ffffff', '#ffffff', '#ffffff', '#ffffff',
+                '#ffffff', '#ffffff', '#ffffff', '#ffffff',
+                '#58d68d', '#58d68d', '#58d68d', '#58d68d'
             ];
 
-            let col = 0;
-            let row = 0;
-
-            gridData.forEach((box, i) => {
-                col = i % 4;
-                row = Math.floor(i / 4);
+            for(let i=0; i<16; i++) {
+                const col = i % 4;
+                const row = Math.floor(i / 4);
                 
                 const x = startX + col * (boxSize + gap);
                 const y = startY + row * (boxSize + gap);
 
-                // Box background
-                ctx.fillStyle = box.bg;
+                ctx.fillStyle = bgs[i];
                 ctx.fillRect(x, y, boxSize, boxSize);
                 
-                // Box border
-                ctx.strokeStyle = '#1f2937'; // Dark gray/black line
+                ctx.strokeStyle = '#1f2937';
                 ctx.lineWidth = 3;
                 ctx.strokeRect(x, y, boxSize, boxSize);
 
-                // Box text
-                if (box.text) {
+                if (gridValues && gridValues[i]) {
                     ctx.fillStyle = '#111827';
-                    ctx.font = 'bold 18px Arial, sans-serif'; // Reduced font size to match rest of card
+                    ctx.font = 'bold 18px Arial, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(box.text, x + boxSize/2, y + boxSize/2 + 2); // +2 for vertical optical alignment
+                    ctx.fillText(gridValues[i].toUpperCase(), x + boxSize/2, y + boxSize/2 + 2);
                 }
-            });
-
-            // Reset text alignments after grid draw
+            }
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
         }
 
-        // --- Download Function ---
-        function downloadID() {
-            // Make sure the canvas is up to date
-            drawID();
-
-            // Create a filename based on the user's name
-            const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            const filename = `${safeName}_id_card.png`;
-
-            // Convert canvas to base64 image data string
-            const dataUrl = canvas.toDataURL('image/png');
-
-            // Create a temporary anchor tag, set download attributes, click it, and remove it
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
         // --- Initialize ---
         // Load logos from Assets folder
-        function loadLogosFromAssets() {
-            // Load left logo
-            const leftLogo = new Image();
-            leftLogo.onload = function() {
-                logoLeftImage = leftLogo;
-                drawID();
-            };
-            leftLogo.src = 'Assests/left_logo.jpeg';
-
-            // Load right logo
-            const rightLogo = new Image();
-            rightLogo.onload = function() {
-                logoRightImage = rightLogo;
-                drawID();
-            };
-            rightLogo.src = 'Assests/right_logo.jpeg';
-        }
-
-        // Draw the initial state right away when the page loads
         window.onload = function() {
             loadLogosFromAssets();
-            drawID();
+            drawSingleID();
         };
 
     </script>
