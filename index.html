@@ -213,10 +213,14 @@
             <div class="w-full lg:w-2/3 flex flex-col bg-gray-50 p-6 rounded-2xl border border-gray-200">
                 
                 <!-- SINGLE PREVIEW -->
-                <div id="singlePreviewContainer" class="flex flex-col items-center justify-center h-full">
-                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Live Preview</div>
-                    <canvas id="idCanvas" width="850" height="500"></canvas>
-                    <p class="mt-4 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
+                <div id="singlePreviewContainer" class="flex flex-col items-center justify-start h-full overflow-y-auto pb-4">
+                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Front Preview</div>
+                    <canvas id="idCanvas" width="850" height="500" class="mb-8"></canvas>
+                    
+                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Back Preview</div>
+                    <canvas id="backCanvas" width="850" height="500"></canvas>
+
+                    <p class="mt-6 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
                 </div>
 
                 <!-- BULK PREVIEW -->
@@ -264,7 +268,7 @@
 
         // Constants for Canvas Size
         const CANVAS_W = 760;
-        const CANVAS_H = 440;
+        const CANVAS_H = 450;
 
         // --- Load Logos from Assets Folder ---
         function loadLogosFromAssets() {
@@ -288,6 +292,9 @@
         // --- DOM Elements (Single Mode) ---
         const singleCanvas = document.getElementById('idCanvas');
         const singleCtx = singleCanvas.getContext('2d');
+        
+        const backCanvas = document.getElementById('backCanvas');
+        const backCtx = backCanvas.getContext('2d');
         
         const inputs = {
             header1: document.getElementById('header1'),
@@ -397,12 +404,26 @@
         function downloadSingleID() {
             drawSingleID();
             const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            const link = document.createElement('a');
-            link.href = singleCanvas.toDataURL('image/png');
-            link.download = `${safeName}_id_card.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            
+            const { jsPDF } = window.jspdf;
+            
+            // Create PDF with dimensions matching our canvas
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [CANVAS_W, CANVAS_H] 
+            });
+
+            // Page 1: Front of the ID
+            const frontImg = singleCanvas.toDataURL('image/png');
+            pdf.addImage(frontImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
+
+            // Page 2: Back of the ID (Zone Definitions)
+            const backImg = getBackPageDataUrl();
+            pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+            pdf.addImage(backImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
+
+            pdf.save(`${safeName}_id_card.pdf`);
         }
 
         // --- STREAMING_CHUNK:Bulk Mode UI and File Handling Logic ---
@@ -655,13 +676,19 @@
                 format: [CANVAS_W, CANVAS_H] 
             });
 
-            // Add each generated card as a new page
+            const backPageImg = getBackPageDataUrl();
+
+            // Add each generated card as a new page, followed by the back page
             generatedCards.forEach((imgDataUrl, index) => {
                 if (index > 0) {
                     pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
                 }
-                // Draw the image filling the entire page
+                // Front Page
                 pdf.addImage(imgDataUrl, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
+                
+                // Back Page
+                pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                pdf.addImage(backPageImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
             });
 
             // Trigger the download
@@ -669,6 +696,91 @@
 
             btn.innerText = "Download All (PDF)";
             btn.disabled = false;
+        }
+
+        // --- STREAMING_CHUNK:Back Page Rendering Logic ---
+        function getBackPageDataUrl() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = CANVAS_W;
+            tempCanvas.height = CANVAS_H;
+            const ctx = tempCanvas.getContext('2d');
+            renderBackPageToContext(ctx);
+            return tempCanvas.toDataURL('image/png');
+        }
+
+        function renderBackPageToContext(ctx) {
+            // 1. Background (Slightly gray to look like the back of a PVC card)
+            ctx.fillStyle = '#f4f6f8';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Add border to canvas matching the front
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
+
+            ctx.fillStyle = '#111827';
+            ctx.textAlign = 'center';
+            
+            // Title
+            ctx.font = 'bold 32px Arial, sans-serif';
+            ctx.fillText('Zone Definitions', CANVAS_W / 2, 45);
+            ctx.textAlign = 'left';
+
+            // Two columns of definitions
+            const leftX = 35;
+            const rightX = 390;
+            let startY = 80;
+            const lineH = 24;
+
+            // Helper to draw bold key and normal value
+            function drawDef(key, value, x, y) {
+                if(key) {
+                    ctx.font = 'bold 17px Arial, sans-serif';
+                    ctx.fillText(key, x, y);
+                    const dashX = x + ctx.measureText(key).width;
+                    ctx.fillText(" - ", dashX, y);
+                    const textX = dashX + ctx.measureText(" - ").width;
+                    ctx.font = '17px Arial, sans-serif';
+                    ctx.fillText(value, textX, y);
+                } else {
+                    // Just text (for wrapped lines)
+                    ctx.font = '17px Arial, sans-serif';
+                    ctx.fillText(value, x + 30, y); // Indent to align with text above
+                }
+            }
+
+            // Left Column
+            drawDef('A', 'Arrival Hall', leftX, startY);
+            drawDef('Si', 'Security Hold International', leftX, startY + lineH);
+            drawDef('P', 'Apron Area', leftX, startY + lineH*2);
+            drawDef('F', 'ATC Building Except Tower', leftX, startY + lineH*3);
+            drawDef('Cs', 'Cargo Security Hold Area', leftX, startY + lineH*4);
+            drawDef('Os', 'Other Special', leftX, startY + lineH*5);
+            drawDef('Ci', 'Cargo International', leftX, startY + lineH*6);
+            drawDef('T', 'Terminal Building Other Than Security Hold,Customs And', leftX, startY + lineH*7);
+            drawDef('', 'Immigration But Including Baggage Claim Area of Terminal', leftX, startY + lineH*8);
+
+            // Right Column
+            drawDef('D', 'Departure Hall', rightX, startY);
+            drawDef('Sd', 'Security Hold Domestic', rightX, startY + lineH);
+            drawDef('B', 'Baggage Handling Area', rightX, startY + lineH*2);
+            drawDef('Ft', 'ATC Tower', rightX, startY + lineH*3);
+            drawDef('I', 'Immigration/Baggage Claim Area', rightX, startY + lineH*4);
+            drawDef('C', 'Cargo Terminal', rightX, startY + lineH*5);
+            drawDef('Cd', 'Cargo Domestic', rightX, startY + lineH*6);
+
+            // Footer lines
+            const footerY = 305;
+            const footLineH = 22;
+            ctx.font = '16px Arial, sans-serif';
+            ctx.fillText("Please surrender this card on expiry. In case of lost or found, it should be", leftX, footerY);
+            ctx.fillText("reported immediately to the police and BCAS, Janpath Bhawan,", leftX, footerY + footLineH);
+            ctx.fillText("New Delhi-01 (Contact No: 011-23311443/23355167).", leftX, footerY + footLineH*2);
+            ctx.fillText("Replication and misuse of this card is punishable.", leftX, footerY + footLineH*3 + 5);
+
+            // Emphasized bottom line
+            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.fillText("AEP to be displayed above waist line at all times on duty.", leftX, footerY + footLineH*5);
         }
 
        //  - Core Drawing Logic
@@ -882,6 +994,11 @@
         window.onload = function() {
             loadLogosFromAssets();
             drawSingleID();
+            
+            // Draw the static back page to the visual preview canvas once
+            if (backCtx) {
+                renderBackPageToContext(backCtx);
+            }
         };
 
     </script>
