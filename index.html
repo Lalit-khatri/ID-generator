@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant ID Card Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- JSZip for packaging multiple images into a ZIP file -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+   <!-- jsPDF for creating multi-page PDF files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         canvas {
             max-width: 100%;
@@ -226,8 +226,8 @@
                             <h3 class="text-lg font-bold text-gray-800">Generated IDs Preview</h3>
                             <p id="bulkProgressText" class="text-sm text-gray-500">Awaiting data...</p>
                         </div>
-                        <button id="downloadZipBtn" onclick="downloadAllZip()" class="hidden bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
-                            Download All (ZIP)
+                        <button id="downloadPdfBtn" onclick="downloadAllPdf()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
+                            Download All (PDF)
                         </button>
                     </div>
 
@@ -243,7 +243,7 @@
 
     <!-- Footer -->
     <footer class="mt-12 mb-4 text-center text-gray-500 text-sm font-medium">
-        Created by Mahesh Rohilla <span class="text-red-500 text-base">❤️</span>
+        Created by Mahesh Rohilla With <span class="text-red-500 text-base px-">❤️</span>
     </footer>
 
 
@@ -260,11 +260,11 @@
         // Bulk mode
         let bulkImageFiles = new Map(); // Maps filename to File object
         let bulkCsvData = [];
-        let generatedZips = []; // Holds data for JSZip
+        let generatedCards = []; // Holds dataUrl for jsPDF
 
         // Constants for Canvas Size
         const CANVAS_W = 760;
-        const CANVAS_H = 460;
+        const CANVAS_H = 440;
 
         // --- Load Logos from Assets Folder ---
         function loadLogosFromAssets() {
@@ -530,7 +530,7 @@
             const grid = document.getElementById('bulkGrid');
             const errorLog = document.getElementById('errorLog');
             const errorList = document.getElementById('errorList');
-            const dlBtn = document.getElementById('downloadZipBtn');
+            const dlBtn = document.getElementById('downloadPdfBtn');
 
             // Reset UI
             btn.disabled = true;
@@ -539,7 +539,7 @@
             errorList.innerHTML = '';
             errorLog.classList.add('hidden');
             dlBtn.classList.add('hidden');
-            generatedZips = [];
+            generatedCards = [];
 
             let successCount = 0;
             let errorCount = 0;
@@ -609,13 +609,9 @@
                     
                     renderCardToContext(tempCtx, cardData);
 
-                    // Save data for ZIP
+                   // Save data for PDF
                     const dataUrl = tempCanvas.toDataURL('image/png');
-                    const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                    generatedZips.push({
-                        filename: `${safeName}_${aepNo}.png`,
-                        base64: dataUrl.split(',')[1] // JSZip needs base64 without the mime header
-                    });
+                    generatedCards.push(dataUrl);
 
                     // Add to UI Grid
                     const imgNode = document.createElement('img');
@@ -645,33 +641,37 @@
             }
         }
 
-        async function downloadAllZip() {
-            const btn = document.getElementById('downloadZipBtn');
-            btn.innerText = "Packaging ZIP...";
+         async function downloadAllPdf() {
+            const btn = document.getElementById('downloadPdfBtn');
+            btn.innerText = "Generating PDF...";
             btn.disabled = true;
 
-            const zip = new JSZip();
+            const { jsPDF } = window.jspdf;
             
-            generatedZips.forEach(item => {
-                zip.file(item.filename, item.base64, {base64: true});
+            // Create PDF with dimensions exactly matching our canvas (landscape ID card)
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [CANVAS_W, CANVAS_H] 
             });
 
-            zip.generateAsync({type:"blob"}).then(function(content) {
-                // Trigger download
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(content);
-                link.download = "Generated_ID_Cards.zip";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                btn.innerText = "Download All (ZIP)";
-                btn.disabled = false;
+            // Add each generated card as a new page
+            generatedCards.forEach((imgDataUrl, index) => {
+                if (index > 0) {
+                    pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                }
+                // Draw the image filling the entire page
+                pdf.addImage(imgDataUrl, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
             });
+
+            // Trigger the download
+            pdf.save("Generated_ID_Cards.pdf");
+
+            btn.innerText = "Download All (PDF)";
+            btn.disabled = false;
         }
 
-        // --- STREAMING_CHUNK:Universal Canvas Rendering Engine ---
-        // This function takes a context and a data object and draws the standardized ID
+       //  - Core Drawing Logic
         function renderCardToContext(ctx, data) {
             // 1. Clear & Background
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
@@ -717,13 +717,13 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            const startY = 110;
+            const startY = 100;
 
             // 3. Draw Profile Photo & Signature
             const boxX = 35;
             const boxW = 190;
-            const photoH = 240;
-            const sigH = 80;
+            const photoH = 220;
+            const sigH = 70;
 
             if (data.photo) {
                 ctx.drawImage(data.photo, boxX, startY, boxW, photoH);
@@ -784,8 +784,8 @@
             nameLines.push(line.trim());
             if (nameLines.length > 2) nameLines = nameLines.slice(0, 2);
             
-            const nameStartY = startY + 25;
-            const nameLineHeight = 35;
+            const nameStartY = startY + 35;
+            const nameLineHeight = 40;
             for (let i = 0; i < nameLines.length; i++) {
                 ctx.fillText(nameLines[i], textX, nameStartY + (i * nameLineHeight));
             }
@@ -804,8 +804,8 @@
             const roleText = getTruncatedText((data.role || '').toUpperCase(), maxTextWidth);
             const companyText = getTruncatedText((data.company || '').toUpperCase(), maxTextWidth);
 
-            ctx.fillText(roleText, textX, startY + 85 + offset);
-            ctx.fillText(companyText, textX, startY + 130 + offset);
+            ctx.fillText(roleText, textX, startY + 75 + offset);
+            ctx.fillText(companyText, textX, startY + 115 + offset);
 
             // Detailed Fields
             ctx.font = 'bold 18px Arial, sans-serif';
@@ -813,7 +813,7 @@
             const colonX = 380; 
             const valueX = 395;
 
-            const yPos = { aep: startY + 205, val: startY + 240, air: startY + 275, term: startY + 325 };
+            const yPos = { aep: startY + 195, val: startY + 220, air: startY + 255, term: startY + 305 };
 
             ctx.fillText('AEP No.', labelX, yPos.aep);
             ctx.fillText(':', colonX, yPos.aep);
@@ -839,7 +839,8 @@
         }
 
         function drawGridToContext(ctx, startX, startY, gridValues) {
-            const boxSize = 38;
+            const boxH = 32;
+            const boxW = 38;
             const gap = 8;
             
             // Background colors map
@@ -854,22 +855,22 @@
                 const col = i % 4;
                 const row = Math.floor(i / 4);
                 
-                const x = startX + col * (boxSize + gap);
-                const y = startY + row * (boxSize + gap);
+                const x = startX + col * (boxW + gap);
+                const y = startY + row * (boxH + gap);
 
                 ctx.fillStyle = bgs[i];
-                ctx.fillRect(x, y, boxSize, boxSize);
+                ctx.fillRect(x, y, boxW, boxH);
                 
                 ctx.strokeStyle = '#1f2937';
                 ctx.lineWidth = 3;
-                ctx.strokeRect(x, y, boxSize, boxSize);
+                ctx.strokeRect(x, y, boxW, boxH);
 
                 if (gridValues && gridValues[i]) {
                     ctx.fillStyle = '#111827';
                     ctx.font = 'bold 18px Arial, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(gridValues[i], x + boxSize/2, y + boxSize/2 + 2);
+                    ctx.fillText(gridValues[i], x + boxW/2, y + boxH/2 + 2);
                 }
             }
             ctx.textAlign = 'left';
