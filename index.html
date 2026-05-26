@@ -811,7 +811,7 @@
                 const maxW = 220; // Increased size
                 const maxH = 90;  // Increased size
                 const ratio = Math.min(maxW / logoLeftImage.width, maxH / logoLeftImage.height);
-                ctx.drawImage(logoLeftImage, 10, 5 + (80 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
+                ctx.drawImage(logoLeftImage, 0, 5 + (80 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
             }
             if (logoRightImage) {
                 const maxW = 110; // Increased size
@@ -923,7 +923,7 @@
             // Detailed Fields
             const labelX = textX;
             const colonX = 380; 
-            const valueX = 395;
+            const valueX = 387;
 
             const yPos = { aep: startY + 195, val: startY + 220, air: startY + 255, term: startY + 305 };
 
