@@ -170,8 +170,8 @@
                         </label>
                     </div>
 
-                    <button onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md">
-                        Download ID Card
+                    <button id="downloadSingleBtn" onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
+                        <span>Download ID Card</span>
                     </button>
                 </div>
 
@@ -230,8 +230,8 @@
                             <h3 class="text-lg font-bold text-gray-800">Generated IDs Preview</h3>
                             <p id="bulkProgressText" class="text-sm text-gray-500">Awaiting data...</p>
                         </div>
-                        <button id="downloadPdfBtn" onclick="downloadAllPdf()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
-                            Download All (PDF)
+                        <button id="downloadPdfBtn" onclick="downloadAllPdf()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2 justify-center min-w-[200px]">
+                            <span>Download All (PDF)</span>
                         </button>
                     </div>
 
@@ -402,57 +402,84 @@
         }
 
         function downloadSingleID() {
-            drawSingleID();
-            const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const btn = document.getElementById('downloadSingleBtn');
+            const originalHTML = btn.innerHTML;
             
-            const { jsPDF } = window.jspdf;
-            
-            // Create PDF with dimensions matching our canvas
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: [CANVAS_W, CANVAS_H] 
-            });
+            // Disable button and show loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating High-Res PDF...
+            `;
 
-            // GATHER DATA FOR HIGH-RES EXPORT
-            let gVals = [];
-            for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
+            // Use setTimeout to allow the UI to update before blocking the main thread with heavy PDF generation
+            setTimeout(() => {
+                try {
+                    drawSingleID();
+                    const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Create PDF with dimensions matching our canvas
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'px',
+                        format: [CANVAS_W, CANVAS_H] 
+                    });
 
-            const cardData = {
-                header1: inputs.header1.value,
-                header2: inputs.header2.value,
-                fullName: inputs.fullName.value,
-                role: inputs.role.value,
-                company: inputs.company.value,
-                aepNo: inputs.aepNo.value,
-                validFrom: inputs.validFrom.value,
-                validUpto: inputs.validUpto.value,
-                airports: inputs.airports.value,
-                terminals: inputs.terminals.value,
-                grid: gVals,
-                photo: photoImage,
-                signature: signatureImage
-            };
+                    // GATHER DATA FOR HIGH-RES EXPORT
+                    let gVals = [];
+                    for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
 
-            // HI-RES FRONT GENERATION (4x Pixel Density)
-            const SCALE = 4;
-            const frontCanvas = document.createElement('canvas');
-            frontCanvas.width = CANVAS_W * SCALE;
-            frontCanvas.height = CANVAS_H * SCALE;
-            const frontCtx = frontCanvas.getContext('2d');
-            frontCtx.scale(SCALE, SCALE); // Scale context for crisp vector text
-            renderCardToContext(frontCtx, cardData);
+                    const cardData = {
+                        header1: inputs.header1.value,
+                        header2: inputs.header2.value,
+                        fullName: inputs.fullName.value,
+                        role: inputs.role.value,
+                        company: inputs.company.value,
+                        aepNo: inputs.aepNo.value,
+                        validFrom: inputs.validFrom.value,
+                        validUpto: inputs.validUpto.value,
+                        airports: inputs.airports.value,
+                        terminals: inputs.terminals.value,
+                        grid: gVals,
+                        photo: photoImage,
+                        signature: signatureImage
+                    };
 
-            // Page 1: Front of the ID (Export at 1.0 Max Quality)
-            const frontImg = frontCanvas.toDataURL('image/png', 1.0);
-            pdf.addImage(frontImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
+                    // HI-RES FRONT GENERATION (4x Pixel Density)
+                    const SCALE = 4;
+                    const frontCanvas = document.createElement('canvas');
+                    frontCanvas.width = CANVAS_W * SCALE;
+                    frontCanvas.height = CANVAS_H * SCALE;
+                    const frontCtx = frontCanvas.getContext('2d');
+                    frontCtx.scale(SCALE, SCALE); // Scale context for crisp vector text
+                    renderCardToContext(frontCtx, cardData);
 
-            // Page 2: Back of the ID (Zone Definitions)
-            const backImg = getBackPageDataUrl();
-            pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
-            pdf.addImage(backImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
+                    // Page 1: Front of the ID (Export at 0.95 High Quality JPEG to save memory)
+                    const frontImg = frontCanvas.toDataURL('image/jpeg', 0.95);
+                    pdf.addImage(frontImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
 
-            pdf.save(`${safeName}_id_card.pdf`);
+                    // Page 2: Back of the ID (Zone Definitions)
+                    const backImg = getBackPageDataUrl();
+                    pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                    pdf.addImage(backImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
+
+                    pdf.save(`${safeName}_id_card.pdf`);
+                } catch (error) {
+                    console.error("PDF generation failed:", error);
+                    alert("An error occurred while generating the PDF. Check console for details.");
+                } finally {
+                    // Restore button state
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    btn.innerHTML = originalHTML;
+                }
+            }, 50); // Small delay allows UI to render loading state
         }
 
         // --- STREAMING_CHUNK:Bulk Mode UI and File Handling Logic ---
@@ -661,8 +688,8 @@
                     
                     renderCardToContext(tempCtx, cardData);
 
-                   // Save high-quality image data for PDF
-                    const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
+                   // Save high-quality image data for PDF as JPEG to prevent memory overload
+                    const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
                     generatedCards.push(dataUrl);
 
                     // Add to UI Grid
@@ -693,40 +720,60 @@
             }
         }
 
-         async function downloadAllPdf() {
+         function downloadAllPdf() {
             const btn = document.getElementById('downloadPdfBtn');
-            btn.innerText = "Generating PDF...";
-            btn.disabled = true;
-
-            const { jsPDF } = window.jspdf;
+            const originalHTML = btn.innerHTML;
             
-            // Create PDF with dimensions exactly matching our canvas (landscape ID card)
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: [CANVAS_W, CANVAS_H] 
-            });
+            // Disable button and show loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating PDF...
+            `;
 
-            const backPageImg = getBackPageDataUrl();
+            // Use setTimeout to allow the UI to update before blocking the main thread
+            setTimeout(() => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Create PDF with dimensions exactly matching our canvas (landscape ID card)
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'px',
+                        format: [CANVAS_W, CANVAS_H] 
+                    });
 
-            // Add each generated card as a new page, followed by the back page
-            generatedCards.forEach((imgDataUrl, index) => {
-                if (index > 0) {
-                    pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                    const backPageImg = getBackPageDataUrl();
+
+                    // Add each generated card as a new page, followed by the back page
+                    generatedCards.forEach((imgDataUrl, index) => {
+                        if (index > 0) {
+                            pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                        }
+                        // Front Page
+                        pdf.addImage(imgDataUrl, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
+                        
+                        // Back Page
+                        pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
+                        pdf.addImage(backPageImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
+                    });
+
+                    // Trigger the download
+                    pdf.save("Generated_ID_Cards.pdf");
+                } catch (error) {
+                    console.error("Bulk PDF generation failed:", error);
+                    alert("An error occurred while generating the bulk PDF. Check console for details.");
+                } finally {
+                    // Restore button state
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    btn.innerHTML = originalHTML;
                 }
-                // Front Page
-                pdf.addImage(imgDataUrl, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
-                
-                // Back Page
-                pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
-                pdf.addImage(backPageImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
-            });
-
-            // Trigger the download
-            pdf.save("Generated_ID_Cards.pdf");
-
-            btn.innerText = "Download All (PDF)";
-            btn.disabled = false;
+            }, 50); // Small delay allows UI to render loading state
         }
 
         // --- STREAMING_CHUNK:Back Page Rendering Logic ---
@@ -738,7 +785,7 @@
             const ctx = tempCanvas.getContext('2d');
             ctx.scale(SCALE, SCALE);
             renderBackPageToContext(ctx);
-            return tempCanvas.toDataURL('image/png', 1.0); // 1.0 max quality
+            return tempCanvas.toDataURL('image/jpeg', 0.95); // High quality JPEG
         }
 
         function renderBackPageToContext(ctx) {
