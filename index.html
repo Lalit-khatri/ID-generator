@@ -414,8 +414,37 @@
                 format: [CANVAS_W, CANVAS_H] 
             });
 
-            // Page 1: Front of the ID
-            const frontImg = singleCanvas.toDataURL('image/png');
+            // GATHER DATA FOR HIGH-RES EXPORT
+            let gVals = [];
+            for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
+
+            const cardData = {
+                header1: inputs.header1.value,
+                header2: inputs.header2.value,
+                fullName: inputs.fullName.value,
+                role: inputs.role.value,
+                company: inputs.company.value,
+                aepNo: inputs.aepNo.value,
+                validFrom: inputs.validFrom.value,
+                validUpto: inputs.validUpto.value,
+                airports: inputs.airports.value,
+                terminals: inputs.terminals.value,
+                grid: gVals,
+                photo: photoImage,
+                signature: signatureImage
+            };
+
+            // HI-RES FRONT GENERATION (4x Pixel Density)
+            const SCALE = 4;
+            const frontCanvas = document.createElement('canvas');
+            frontCanvas.width = CANVAS_W * SCALE;
+            frontCanvas.height = CANVAS_H * SCALE;
+            const frontCtx = frontCanvas.getContext('2d');
+            frontCtx.scale(SCALE, SCALE); // Scale context for crisp vector text
+            renderCardToContext(frontCtx, cardData);
+
+            // Page 1: Front of the ID (Export at 1.0 Max Quality)
+            const frontImg = frontCanvas.toDataURL('image/png', 1.0);
             pdf.addImage(frontImg, 'PNG', 0, 0, CANVAS_W, CANVAS_H);
 
             // Page 2: Back of the ID (Zone Definitions)
@@ -622,16 +651,18 @@
                         signature: sigImg
                     };
 
-                    // Create an off-screen canvas to render this specific ID
+                    // Create a HIGH-RES off-screen canvas to render this specific ID
+                    const SCALE = 4; // 4x Pixel Density for crisp printing
                     const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = CANVAS_W;
-                    tempCanvas.height = CANVAS_H;
+                    tempCanvas.width = CANVAS_W * SCALE;
+                    tempCanvas.height = CANVAS_H * SCALE;
                     const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.scale(SCALE, SCALE);
                     
                     renderCardToContext(tempCtx, cardData);
 
-                   // Save data for PDF
-                    const dataUrl = tempCanvas.toDataURL('image/png');
+                   // Save high-quality image data for PDF
+                    const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
                     generatedCards.push(dataUrl);
 
                     // Add to UI Grid
@@ -700,12 +731,14 @@
 
         // --- STREAMING_CHUNK:Back Page Rendering Logic ---
         function getBackPageDataUrl() {
+            const SCALE = 4; // High resolution multiplier for crisp printing
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = CANVAS_W;
-            tempCanvas.height = CANVAS_H;
+            tempCanvas.width = CANVAS_W * SCALE;
+            tempCanvas.height = CANVAS_H * SCALE;
             const ctx = tempCanvas.getContext('2d');
+            ctx.scale(SCALE, SCALE);
             renderBackPageToContext(ctx);
-            return tempCanvas.toDataURL('image/png');
+            return tempCanvas.toDataURL('image/png', 1.0); // 1.0 max quality
         }
 
         function renderBackPageToContext(ctx) {
