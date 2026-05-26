@@ -215,10 +215,10 @@
                 <!-- SINGLE PREVIEW -->
                 <div id="singlePreviewContainer" class="flex flex-col items-center justify-start h-full overflow-y-auto pb-4">
                     <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Front Preview</div>
-                    <canvas id="idCanvas" width="760" height="450" class="mb-8"></canvas>
+                    <canvas id="idCanvas" width="720" height="430" class="mb-8"></canvas>
                     
                     <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Back Preview</div>
-                    <canvas id="backCanvas" width="760" height="450"></canvas>
+                    <canvas id="backCanvas" width="720" height="430"></canvas>
 
                     <p class="mt-6 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
                 </div>
@@ -267,8 +267,8 @@
         let generatedCards = []; // Holds dataUrl for jsPDF
 
         // Constants for Canvas Size
-        const CANVAS_W = 760;
-        const CANVAS_H = 450;
+        const CANVAS_W = 720;
+        const CANVAS_H = 430;
 
         // --- Load Logos from Assets Folder ---
         function loadLogosFromAssets() {
@@ -799,26 +799,26 @@
             ctx.fillStyle = '#111827';
             ctx.textAlign = 'center';
             
-            ctx.font = 'bold 30px Arial, sans-serif';
-            ctx.fillText((data.header1 || '').toUpperCase(), CANVAS_W / 2, 40);
+            ctx.font = 'bold 32px Arial, sans-serif';
+            ctx.fillText((data.header1 || '').toUpperCase(), CANVAS_W / 2+30, 40);
             
-            ctx.font = 'bold 18px Arial, sans-serif';
-            ctx.fillText((data.header2 || '').toUpperCase(), CANVAS_W / 2, 70);
+            ctx.font = 'bold 19px Arial, sans-serif';
+            ctx.fillText((data.header2 || '').toUpperCase(), CANVAS_W / 2+30, 70);
             ctx.textAlign = 'left';
 
             // Draw Header Logos
             if (logoLeftImage) {
-                const maxW = 140;
-                const maxH = 70;
+                const maxW = 220; // Increased size
+                const maxH = 90;  // Increased size
                 const ratio = Math.min(maxW / logoLeftImage.width, maxH / logoLeftImage.height);
-                ctx.drawImage(logoLeftImage, 35, 10 + (70 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
+                ctx.drawImage(logoLeftImage, 10, 5 + (80 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
             }
             if (logoRightImage) {
-                const maxW = 80;
-                const maxH = 70;
+                const maxW = 110; // Increased size
+                const maxH = 80;  // Increased size
                 const ratio = Math.min(maxW / logoRightImage.width, maxH / logoRightImage.height);
                 const w = logoRightImage.width * ratio;
-                ctx.drawImage(logoRightImage, CANVAS_W - 35 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
+                ctx.drawImage(logoRightImage, CANVAS_W - 25 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
             }
 
             // Separator Line
@@ -832,7 +832,7 @@
             const startY = 100;
 
             // 3. Draw Profile Photo & Signature
-            const boxX = 35;
+            const boxX = 10;
             const boxW = 190;
             const photoH = 220;
             const sigH = 70;
@@ -863,7 +863,7 @@
             }
 
             ctx.strokeStyle = '#1f2937';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1; // Made thinner
             ctx.strokeRect(boxX, startY, boxW, photoH + sigH);
             
             ctx.beginPath();
@@ -872,12 +872,12 @@
             ctx.stroke();
 
             // 4. Draw User Information Text
-            const textX = 240;
-            const maxTextWidth = 255;
+            const textX = 240-25;
+            const maxTextWidth = 260;
             ctx.fillStyle = '#111827'; 
             
             // Name Wrapping Logic
-            ctx.font = 'bold 26px Arial, sans-serif';
+            ctx.font = 'bold 28px Arial, sans-serif';
             const nameText = (data.fullName || '').toUpperCase();
             const words = nameText.split(' ');
             let line = '';
@@ -916,43 +916,42 @@
             const roleText = getTruncatedText((data.role || '').toUpperCase(), maxTextWidth);
             const companyText = getTruncatedText((data.company || '').toUpperCase(), maxTextWidth);
 
+            ctx.font = 'bold 28px Arial, sans-serif';
             ctx.fillText(roleText, textX, startY + 75 + offset);
             ctx.fillText(companyText, textX, startY + 115 + offset);
 
             // Detailed Fields
-            ctx.font = 'bold 18px Arial, sans-serif';
             const labelX = textX;
             const colonX = 380; 
             const valueX = 395;
 
             const yPos = { aep: startY + 195, val: startY + 220, air: startY + 255, term: startY + 305 };
 
-            ctx.fillText('AEP No.', labelX, yPos.aep);
-            ctx.fillText(':', colonX, yPos.aep);
-            ctx.fillText((data.aepNo || '').toUpperCase(), valueX, yPos.aep);
+            function drawDetailRow(label, value, y) {
+                ctx.font = 'normal 18px Arial, sans-serif';
+                ctx.fillText(label, labelX, y);
+                ctx.font = 'bold 18px Arial, sans-serif';
+                ctx.fillText(':', colonX, y);
+                ctx.fillText(value, valueX, y);
+            }
 
-            ctx.fillText('VALIDITY', labelX, yPos.val);
-            ctx.fillText(':', colonX, yPos.val);
+            drawDetailRow('AEP No.', (data.aepNo || '').toUpperCase(), yPos.aep);
+            
             const vFrom = (data.validFrom || '').toUpperCase();
             const vUpto = (data.validUpto || '').toUpperCase();
             const validityText = vFrom && vUpto ? `${vFrom} TO ${vUpto}` : (vFrom || vUpto);
-            ctx.fillText(validityText, valueX, yPos.val);
+            drawDetailRow('VALIDITY', validityText, yPos.val);
 
-            ctx.fillText('AIRPORTS', labelX, yPos.air);
-            ctx.fillText(':', colonX, yPos.air);
-            ctx.fillText((data.airports || '').toUpperCase(), valueX, yPos.air);
-
-            ctx.fillText('TERMINALS', labelX, yPos.term);
-            ctx.fillText(':', colonX, yPos.term);
-            ctx.fillText((data.terminals || '').toUpperCase(), valueX, yPos.term);
+            drawDetailRow('AIRPORTS', (data.airports || '').toUpperCase(), yPos.air);
+            drawDetailRow('TERMINALS', (data.terminals || '').toUpperCase(), yPos.term);
 
             // 5. Draw The Grid Block
-            drawGridToContext(ctx, 520, startY, data.grid);
+            drawGridToContext(ctx, 500, startY+10, data.grid); // Shifted slightly left to accommodate larger boxes
         }
 
         function drawGridToContext(ctx, startX, startY, gridValues) {
-            const boxH = 32;
-            const boxW = 38;
+            const boxH = 30; // Made bigger
+            const boxW = 42; // Made bigger
             const gap = 8;
             
             // Background colors map
@@ -974,12 +973,12 @@
                 ctx.fillRect(x, y, boxW, boxH);
                 
                 ctx.strokeStyle = '#1f2937';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 3; // Made thicker
                 ctx.strokeRect(x, y, boxW, boxH);
 
                 if (gridValues && gridValues[i]) {
                     ctx.fillStyle = '#111827';
-                    ctx.font = 'bold 18px Arial, sans-serif';
+                    ctx.font = 'bold 22px Arial, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(gridValues[i], x + boxW/2, y + boxH/2 + 2);
