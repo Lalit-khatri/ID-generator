@@ -930,7 +930,7 @@
             function drawDetailRow(label, value, y) {
                 ctx.font = 'normal 18px Arial, sans-serif';
                 ctx.fillText(label, labelX, y);
-                ctx.font = 'bold 18px Arial, sans-serif';
+                ctx.font = 'bold 20px Arial, sans-serif';
                 ctx.fillText(':', colonX, y);
                 ctx.fillText(value, valueX, y);
             }
@@ -973,7 +973,7 @@
                 ctx.fillRect(x, y, boxW, boxH);
                 
                 ctx.strokeStyle = '#1f2937';
-                ctx.lineWidth = 3; // Made thicker
+                ctx.lineWidth = 4; // Made thicker
                 ctx.strokeRect(x, y, boxW, boxH);
 
                 if (gridValues && gridValues[i]) {
