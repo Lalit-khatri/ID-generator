@@ -628,20 +628,20 @@
                 
                 try {
                     // Extract data mapped to A-Z logic provided in prompt
-                    const aepNo = cols[0] || '';
+                    const aepNo = cols[4] || '';
                     const fullName = cols[1] || '';
                     const role = cols[2] || '';
                     const company = cols[3] || '';
-                    const validUpto = cols[4] || '';
+                    const validUpto = cols[6] || '';
                     const validFrom = cols[5] || '';
-                    const photoPath = cols[6] || '';
-                    const sigPath = cols[7] || '';
+                    const photoPath = cols[25] || '';
+                    const sigPath = cols[26] || '';
                     const terminals = cols[8] || '';
-                    const airports = cols[9] || '';
+                    const airports = cols[7] || '';
                     
-                    // Grid K to Z (indices 10 to 25)
+                    // Grid J to y (indices 9 to 24)
                     let gridVals = [];
-                    for(let k=10; k<=25; k++) {
+                    for(let k=9; k<=24; k++) {
                         gridVals.push(cols[k] ? cols[k].trim() : '');
                     }
 
