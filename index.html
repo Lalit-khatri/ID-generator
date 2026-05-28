@@ -914,8 +914,8 @@
             // 3. Draw Profile Photo & Signature
             const boxX = 10;
             const boxW = 190;
-            const photoH = 220;
-            const sigH = 70;
+            const photoH = 237;
+            const sigH = 53;
 
             if (data.photo) {
                 ctx.drawImage(data.photo, boxX, startY, boxW, photoH);
@@ -936,7 +936,7 @@
                 ctx.beginPath();
                 ctx.moveTo(boxX + 20, sigY + 40);
                 ctx.quadraticCurveTo(boxX + 60, sigY + 10, boxX + 100, sigY + 40);
-                ctx.quadraticCurveTo(boxX + 140, sigY + 70, boxX + 180, sigY + 30);
+                ctx.quadraticCurveTo(boxX + 140, sigY + 60, boxX + 180, sigY + 20);
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 2;
                 ctx.stroke();
@@ -946,10 +946,6 @@
             ctx.lineWidth = 1; // Made thinner
             ctx.strokeRect(boxX, startY, boxW, photoH + sigH);
             
-            ctx.beginPath();
-            ctx.moveTo(boxX, sigY);
-            ctx.lineTo(boxX + boxW, sigY);
-            ctx.stroke();
 
             // 4. Draw User Information Text
             const textX = 240-25;
