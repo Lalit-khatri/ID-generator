@@ -1,22 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { IdCard, ArrowRight, Loader2, ShieldCheck, Lock } from 'lucide-react';
-
-// SECURITY NOTE: The SHA-256 hash of your secret ID. 
-// Currently set to the hash of "admin". 
-// NEVER put your actual raw ID in the code! Only put the hash!
-const VALID_ID_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
-
-// We store your raw HTML exactly as provided. (Internal JS characters are escaped for React compatibility)
-const ID_GENERATOR_HTML = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant ID Card Generator</title>
-    <script src="https://cdn.tailwindcss.com"><\/script>
-   <!-- jsPDF for creating multi-page PDF files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsPDF for creating multi-page PDF files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Lucide Icons for the Login Screen -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
+        /* --- APP STYLES --- */
         canvas {
             max-width: 100%;
             height: auto;
@@ -58,230 +57,450 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-10 px-4 font-sans text-gray-800">
+<body class="bg-white font-sans text-slate-900 transition-colors duration-300">
 
-    <div class="max-w-7xl mx-auto">
-        
-        <!-- Header -->
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">Bulk ID Card Generator</h1>
-            <p class="text-gray-500">Create single ID cards or generate hundreds at once from a CSV file.</p>
+    <!-- ========================================== -->
+    <!-- LOGIN SCREEN                               -->
+    <!-- ========================================== -->
+    <div id="loginView" class="min-h-screen w-full flex">
+        <!-- LEFT SIDE - LOGIN FORM -->
+        <div class="w-full lg:w-1/2 flex flex-col p-6 sm:p-12 md:p-20 relative">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-2 font-bold text-xl tracking-tight text-slate-900">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i data-lucide="id-card" class="w-5 h-5"></i>
+                </div>
+                ID Generator<span class="text-indigo-600">.</span>
+            </div>
+
+            <!-- Center Form Content -->
+            <div class="flex-grow flex flex-col justify-center max-w-sm mx-auto w-full mt-12 lg:mt-0">
+                <div class="flex flex-col items-center text-center mb-8">
+                    <div id="loginIconBg" class="bg-indigo-50 text-indigo-600 p-3 rounded-full mb-4">
+                        <i id="loginIcon" data-lucide="shield-check" class="w-8 h-8"></i>
+                    </div>
+                    <h1 id="loginTitle" class="text-3xl font-extrabold mb-2">Welcome back</h1>
+                    <p id="loginSubtitle" class="text-slate-500 text-sm">
+                        Access your ID generator dashboard using your secure unique identifier.
+                    </p>
+                </div>
+
+                <form id="loginForm" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label for="uniqueId" class="sr-only">Unique ID</label>
+                        <input
+                            id="uniqueId"
+                            type="text"
+                            placeholder="Enter your unique ID"
+                            class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-indigo-100 focus:border-indigo-500 focus:outline-none focus:ring-4 transition-all duration-200 text-slate-700 bg-slate-50/50 focus:bg-white placeholder:text-slate-400 disabled:opacity-50 disabled:bg-slate-100"
+                            autofocus
+                        />
+                        <p id="loginError" class="text-red-500 text-xs font-medium pl-1 mt-1 hidden"></p>
+                    </div>
+
+                    <button
+                        id="submitBtn"
+                        type="submit"
+                        class="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-full px-4 py-3.5 font-semibold flex items-center justify-center gap-2 transition-all duration-200 mt-2 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <span id="btnText">Continue</span>
+                        <i id="btnIcon" data-lucide="arrow-right" class="w-[18px] h-[18px]"></i>
+                    </button>
+                </form>
+
+                <p class="text-center text-xs text-slate-400 mt-8 leading-relaxed">
+                    By continuing, you agree to our <a href="#" class="underline hover:text-slate-600 transition-colors">Terms of Service</a> and <a href="#" class="underline hover:text-slate-600 transition-colors">Privacy Policy</a>.
+                </p>
+            </div>
         </div>
 
-        <div class="flex flex-col lg:flex-row gap-8">
-            
-            <!-- Left Column: Controls -->
-            <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-                
-                <!-- Tabs -->
-                <div class="flex gap-2 mb-6">
-                    <button id="tabSingle" onclick="switchTab('single')" class="tab-btn active flex-1 py-2 rounded-lg font-semibold border transition">Single ID</button>
-                    <button id="tabBulk" onclick="switchTab('bulk')" class="tab-btn flex-1 py-2 rounded-lg font-semibold border transition">Bulk Generate</button>
-                </div>
-
-                <!-- SINGLE ID FORM -->
-                <div id="singleForm" class="space-y-4">
-                    <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Single Card Details</h2>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 1</label>
-                            <input type="text" id="header1" value="AERODROME ENTRY PERMIT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 2</label>
-                            <input type="text" id="header2" value="BUREAU OF CIVIL AVIATION SECURITY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name (Max 30 chars)</label>
-                        <input type="text" id="fullName" value="SHISHUPAL KUMAR" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Role / Job Title</label>
-                        <input type="text" id="roleTitle" value="LOADER" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                        <input type="text" id="companyName" value="BFS IND PVT LT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">AEP No.</label>
-                        <input type="text" id="aepNo" value="DEL2602060106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
-                            <input type="text" id="validFrom" value="15/05/2026" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Valid Upto</label>
-                            <input type="text" id="validUpto" value="02/03/2029" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Airports</label>
-                            <input type="text" id="airports" value="DEL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Terminals</label>
-                            <input type="text" id="terminals" value="TERMINAL-3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
-                        </div>
-                    </div>
-
-                    <!-- Custom Grid Block -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Zones</label>
-                        <div class="grid grid-cols-4 gap-2">
-                            <!-- Row 1 Orange -->
-                            <input type="text" id="g0" value="A" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
-                            <input type="text" id="g1" value="D" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
-                            <input type="text" id="g2" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
-                            <input type="text" id="g3" value="Si" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
-                            <!-- Row 2 White -->
-                            <input type="text" id="g4" value="Sd" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g5" value="P" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g6" value="B" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g7" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <!-- Row 3 White -->
-                            <input type="text" id="g8" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g9" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g10" value="I" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <input type="text" id="g11" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
-                            <!-- Row 4 Green -->
-                            <input type="text" id="g12" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
-                            <input type="text" id="g13" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
-                            <input type="text" id="g14" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
-                            <input type="text" id="g15" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
-                        </div>
-                    </div>
-
-                    <div class="pt-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
-                        <label class="custom-file-upload">
-                            <span id="photoLabel">Upload Photo</span>
-                            <input type="file" id="photoInput" accept="image/*">
-                        </label>
-                    </div>
-
-                    <div class="pt-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Signature</label>
-                        <label class="custom-file-upload">
-                            <span id="sigLabel">Upload Signature</span>
-                            <input type="file" id="sigInput" accept="image/*">
-                        </label>
-                    </div>
-
-                    <button id="downloadSingleBtn" onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
-                        <span>Download ID Card</span>
-                    </button>
-                </div>
-
-                <!-- BULK GENERATE FORM -->
-                <div id="bulkForm" class="hidden space-y-6">
-                    <div>
-                        <h2 class="text-xl font-semibold mb-2 text-gray-800">1. Upload Image Folder</h2>
-                        <p class="text-xs text-gray-500 mb-2">Select the folder containing all Profile Photos and Signatures referenced in your CSV.</p>
-                        <label class="custom-file-upload border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
-                            <span id="bulkFolderLabel" class="font-medium">Select Images Folder</span>
-                            <!-- webkitdirectory allows selecting a whole folder -->
-                            <input type="file" id="bulkFolderInput" webkitdirectory directory multiple>
-                        </label>
-                        <div id="folderStats" class="text-xs text-green-600 mt-1 font-medium hidden"></div>
-                    </div>
-
-                    <div>
-                        <h2 class="text-xl font-semibold mb-2 text-gray-800">2. Upload CSV Data</h2>
-                        <p class="text-xs text-gray-500 mb-2">Upload the spreadsheet (saved as .CSV). Columns must be: AEP No, Name, Role, Company, Valid Upto, Valid From, Photo Name, Sig Name, Terminals, Airports, Grid1-16</p>
-                        <label class="custom-file-upload border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100">
-                            <span id="bulkCsvLabel" class="font-medium">Upload .CSV File</span>
-                            <input type="file" id="bulkCsvInput" accept=".csv">
-                        </label>
-                    </div>
-
-                    <button id="processBulkBtn" onclick="processBulkData()" class="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg shadow-md cursor-not-allowed" disabled>
-                        Process & Generate Bulk IDs
-                    </button>
-
-                    <!-- Error Log -->
-                    <div id="errorLog" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg max-h-40 overflow-y-auto">
-                        <h3 class="text-red-800 text-sm font-bold mb-1">Errors (Skipped Rows)</h3>
-                        <ul id="errorList" class="text-xs text-red-600 space-y-1 list-disc pl-4"></ul>
-                    </div>
-                </div>
+        <!-- RIGHT SIDE - IMAGE -->
+        <div class="hidden lg:block lg:w-1/2 relative bg-slate-100 overflow-hidden">
+            <img 
+                src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" 
+                alt="Abstract shapes" 
+                class="absolute inset-0 w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
+            <div class="absolute bottom-8 right-8 text-white/80 text-sm font-medium drop-shadow-md">
+                @IDGeneratorSystem
             </div>
-
-            <!-- Right Column: Preview Area -->
-            <div class="w-full lg:w-2/3 flex flex-col bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                
-                <!-- SINGLE PREVIEW -->
-                <div id="singlePreviewContainer" class="flex flex-col items-center justify-start h-full overflow-y-auto pb-4">
-                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Front Preview</div>
-                    <canvas id="idCanvas" width="720" height="430" class="mb-8"></canvas>
-                    
-                    <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Back Preview</div>
-                    <canvas id="backCanvas" width="720" height="430"></canvas>
-
-                    <p class="mt-6 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
-                </div>
-
-                <!-- BULK PREVIEW -->
-                <div id="bulkPreviewContainer" class="hidden flex-col h-full w-full">
-                    <div class="flex justify-between items-end mb-4">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">Generated IDs Preview</h3>
-                            <p id="bulkProgressText" class="text-sm text-gray-500">Awaiting data...</p>
-                        </div>
-                        <button id="downloadPdfBtn" onclick="downloadAllPdf()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2 justify-center min-w-[200px]">
-                            <span>Download All (PDF)</span>
-                        </button>
-                    </div>
-
-                    <!-- CSS Grid to hold miniaturized previews of generated cards -->
-                    <div id="bulkGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto p-2" style="max-height: 600px;">
-                        <!-- Generated images will populate here -->
-                    </div>
-                </div>
-            </div>
-            
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="mt-12 mb-4 text-center text-gray-500 text-sm font-medium">
-        Created by Mahesh Rohilla With <span class="text-red-500 text-base px-">❤️</span>
-    </footer>
 
+    <!-- ========================================== -->
+    <!-- ID GENERATOR APP (Hidden initially)        -->
+    <!-- ========================================== -->
+    <div id="appView" class="hidden min-h-screen py-10 px-4 text-gray-800">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- Header -->
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Bulk ID Card Generator</h1>
+                <p class="text-gray-500">Create single ID cards or generate hundreds at once from a CSV file.</p>
+            </div>
 
+            <div class="flex flex-col lg:flex-row gap-8">
+                
+                <!-- Left Column: Controls -->
+                <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                    
+                    <!-- Tabs -->
+                    <div class="flex gap-2 mb-6">
+                        <button id="tabSingle" onclick="switchTab('single')" class="tab-btn active flex-1 py-2 rounded-lg font-semibold border transition">Single ID</button>
+                        <button id="tabBulk" onclick="switchTab('bulk')" class="tab-btn flex-1 py-2 rounded-lg font-semibold border transition">Bulk Generate</button>
+                    </div>
+
+                    <!-- SINGLE ID FORM -->
+                    <div id="singleForm" class="space-y-4">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Single Card Details</h2>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 1</label>
+                                <input type="text" id="header1" value="AERODROME ENTRY PERMIT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Header Line 2</label>
+                                <input type="text" id="header2" value="BUREAU OF CIVIL AVIATION SECURITY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name (Max 30 chars)</label>
+                            <input type="text" id="fullName" value="SHISHUPAL KUMAR" maxlength="30" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role / Job Title</label>
+                            <input type="text" id="roleTitle" value="LOADER" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                            <input type="text" id="companyName" value="BFS IND PVT LT" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">AEP No.</label>
+                            <input type="text" id="aepNo" value="DEL2602060106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                                <input type="text" id="validFrom" value="15/05/2026" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Valid Upto</label>
+                                <input type="text" id="validUpto" value="02/03/2029" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Airports</label>
+                                <input type="text" id="airports" value="DEL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Terminals</label>
+                                <input type="text" id="terminals" value="TERMINAL-3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase">
+                            </div>
+                        </div>
+
+                        <!-- Custom Grid Block -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Zones</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <!-- Row 1 Orange -->
+                                <input type="text" id="g0" value="A" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
+                                <input type="text" id="g1" value="D" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
+                                <input type="text" id="g2" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
+                                <input type="text" id="g3" value="Si" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-orange-50">
+                                <!-- Row 2 White -->
+                                <input type="text" id="g4" value="Sd" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g5" value="P" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g6" value="B" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g7" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <!-- Row 3 White -->
+                                <input type="text" id="g8" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g9" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g10" value="I" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <input type="text" id="g11" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm">
+                                <!-- Row 4 Green -->
+                                <input type="text" id="g12" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
+                                <input type="text" id="g13" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
+                                <input type="text" id="g14" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
+                                <input type="text" id="g15" value="" class="px-2 py-1 border border-gray-300 rounded text-center text-sm bg-green-50">
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
+                            <label class="custom-file-upload">
+                                <span id="photoLabel">Upload Photo</span>
+                                <input type="file" id="photoInput" accept="image/*">
+                            </label>
+                        </div>
+
+                        <div class="pt-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+                            <label class="custom-file-upload">
+                                <span id="sigLabel">Upload Signature</span>
+                                <input type="file" id="sigInput" accept="image/*">
+                            </label>
+                        </div>
+
+                        <button id="downloadSingleBtn" onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
+                            <span>Download ID Card</span>
+                        </button>
+                    </div>
+
+                    <!-- BULK GENERATE FORM -->
+                    <div id="bulkForm" class="hidden space-y-6">
+                        <div>
+                            <h2 class="text-xl font-semibold mb-2 text-gray-800">1. Upload Image Folder</h2>
+                            <p class="text-xs text-gray-500 mb-2">Select the folder containing all Profile Photos and Signatures referenced in your CSV.</p>
+                            <label class="custom-file-upload border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                                <span id="bulkFolderLabel" class="font-medium">Select Images Folder</span>
+                                <input type="file" id="bulkFolderInput" webkitdirectory directory multiple>
+                            </label>
+                            <div id="folderStats" class="text-xs text-green-600 mt-1 font-medium hidden"></div>
+                        </div>
+
+                        <div>
+                            <h2 class="text-xl font-semibold mb-2 text-gray-800">2. Upload CSV Data</h2>
+                            <p class="text-xs text-gray-500 mb-2">Upload the spreadsheet (saved as .CSV). Columns must be: AEP No, Name, Role, Company, Valid Upto, Valid From, Photo Name, Sig Name, Terminals, Airports, Grid1-16</p>
+                            <label class="custom-file-upload border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100">
+                                <span id="bulkCsvLabel" class="font-medium">Upload .CSV File</span>
+                                <input type="file" id="bulkCsvInput" accept=".csv">
+                            </label>
+                        </div>
+
+                        <button id="processBulkBtn" onclick="processBulkData()" class="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg shadow-md cursor-not-allowed" disabled>
+                            Process & Generate Bulk IDs
+                        </button>
+
+                        <!-- Error Log -->
+                        <div id="errorLog" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg max-h-40 overflow-y-auto">
+                            <h3 class="text-red-800 text-sm font-bold mb-1">Errors (Skipped Rows)</h3>
+                            <ul id="errorList" class="text-xs text-red-600 space-y-1 list-disc pl-4"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Preview Area -->
+                <div class="w-full lg:w-2/3 flex flex-col bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                    
+                    <!-- SINGLE PREVIEW -->
+                    <div id="singlePreviewContainer" class="flex flex-col items-center justify-start h-full overflow-y-auto pb-4">
+                        <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Front Preview</div>
+                        <canvas id="idCanvas" width="720" height="430" class="mb-8"></canvas>
+                        
+                        <div class="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">Back Preview</div>
+                        <canvas id="backCanvas" width="720" height="430"></canvas>
+
+                        <p class="mt-6 text-xs text-gray-400 text-center">Changes you make on the left are updated here in real-time.</p>
+                    </div>
+
+                    <!-- BULK PREVIEW -->
+                    <div id="bulkPreviewContainer" class="hidden flex-col h-full w-full">
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Generated IDs Preview</h3>
+                                <p id="bulkProgressText" class="text-sm text-gray-500">Awaiting data...</p>
+                            </div>
+                            <button id="downloadPdfBtn" onclick="downloadAllPdf()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2 justify-center min-w-[200px]">
+                                <span>Download All (PDF)</span>
+                            </button>
+                        </div>
+
+                        <!-- CSS Grid to hold miniaturized previews of generated cards -->
+                        <div id="bulkGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto p-2" style="max-height: 600px;">
+                            <!-- Generated images will populate here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 mb-4 text-center text-gray-500 text-sm font-medium">
+            Created by Mahesh Rohilla With <span class="text-red-500 text-base">❤️</span>
+        </footer>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIC                           -->
+    <!-- ========================================== -->
     <script>
-        // --- State Variables ---
-        // Single mode
+        // Initialize icons on load
+        lucide.createIcons();
+
+        /* --- LOGIN LOGIC --- */
+        
+        // SECURITY NOTE: The SHA-256 hash of your secret ID. 
+        // Currently set to the hash of "admin". 
+        const VALID_ID_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+        
+        let attempts = 0;
+        let isLocked = false;
+
+        async function hashInput(message) {
+            const msgUint8 = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        document.getElementById('uniqueId').addEventListener('input', () => {
+            if(!isLocked) document.getElementById('loginError').classList.add('hidden');
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isLocked) return;
+
+            const inputField = document.getElementById('uniqueId');
+            const uniqueId = inputField.value;
+            const errorEl = document.getElementById('loginError');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+
+            if (!uniqueId.trim()) {
+                errorEl.innerText = 'Please enter your unique ID to continue.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            errorEl.classList.add('hidden');
+            submitBtn.disabled = true;
+            inputField.disabled = true;
+            btnText.innerText = 'Authenticating...';
+            btnIcon.setAttribute('data-lucide', 'loader-2');
+            btnIcon.classList.add('animate-spin');
+            lucide.createIcons();
+
+            try {
+                const inputHash = await hashInput(uniqueId);
+                console.log("Hash for '" + uniqueId + "': " + inputHash);
+                
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                if (inputHash === VALID_ID_HASH) {
+                    // Success! Hide login, show app
+                    document.getElementById('loginView').classList.add('hidden');
+                    document.getElementById('appView').classList.remove('hidden');
+                    
+                    // Switch background color to match app
+                    document.body.classList.remove('bg-white');
+                    document.body.classList.add('bg-gray-100');
+                    
+                    // Initialize the ID Card Canvas system
+                    initIDGenerator();
+                } else {
+                    attempts++;
+                    submitBtn.disabled = false;
+                    inputField.disabled = false;
+                    btnText.innerText = 'Continue';
+                    btnIcon.setAttribute('data-lucide', 'arrow-right');
+                    btnIcon.classList.remove('animate-spin');
+                    lucide.createIcons();
+
+                    if (attempts >= 3) {
+                        isLocked = true;
+                        errorEl.innerText = 'Too many failed attempts. Login blocked.';
+                        errorEl.classList.remove('hidden');
+                        
+                        // Lock the UI visually
+                        inputField.disabled = true;
+                        submitBtn.disabled = true;
+                        submitBtn.classList.replace('bg-slate-900', 'bg-red-600');
+                        submitBtn.classList.replace('hover:bg-slate-800', 'hover:bg-red-700');
+                        
+                        document.getElementById('loginTitle').innerText = 'Access Blocked';
+                        document.getElementById('loginSubtitle').innerText = 'You have exceeded the maximum number of login attempts.';
+                        
+                        const iconBg = document.getElementById('loginIconBg');
+                        iconBg.classList.replace('bg-indigo-50', 'bg-red-50');
+                        iconBg.classList.replace('text-indigo-600', 'text-red-600');
+                        document.getElementById('loginIcon').setAttribute('data-lucide', 'lock');
+                        lucide.createIcons();
+
+                    } else {
+                        errorEl.innerText = `Invalid ID. You have ${3 - attempts} attempt(s) remaining.`;
+                        errorEl.classList.remove('hidden');
+                        inputField.focus();
+                    }
+                }
+            } catch (err) {
+                submitBtn.disabled = false;
+                inputField.disabled = false;
+                btnText.innerText = 'Continue';
+                btnIcon.setAttribute('data-lucide', 'arrow-right');
+                btnIcon.classList.remove('animate-spin');
+                lucide.createIcons();
+                errorEl.innerText = 'An error occurred during authentication.';
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+
+        /* --- EXACT ID GENERATOR LOGIC --- */
+        // This is wrapped in a function so it only runs when login succeeds
+        
         let photoImage = null;
         let signatureImage = null;
-        
-        // Header Logos (Constant for both modes)
         let logoLeftImage = null;
         let logoRightImage = null;
-
-        // Bulk mode
-        let bulkImageFiles = new Map(); // Maps filename to File object
+        let bulkImageFiles = new Map();
         let bulkCsvData = [];
-        let generatedCards = []; // Holds dataUrl for jsPDF
-
-        // Constants for Canvas Size
+        let generatedCards = [];
         const CANVAS_W = 720;
         const CANVAS_H = 430;
 
-        // --- Load Logos from Assets Folder ---
+        let singleCanvas, singleCtx, backCanvas, backCtx, inputs, gridInputs;
+
+        function initIDGenerator() {
+            singleCanvas = document.getElementById('idCanvas');
+            singleCtx = singleCanvas.getContext('2d');
+            backCanvas = document.getElementById('backCanvas');
+            backCtx = backCanvas.getContext('2d');
+            
+            inputs = {
+                header1: document.getElementById('header1'),
+                header2: document.getElementById('header2'),
+                fullName: document.getElementById('fullName'),
+                role: document.getElementById('roleTitle'),
+                company: document.getElementById('companyName'),
+                aepNo: document.getElementById('aepNo'),
+                validFrom: document.getElementById('validFrom'),
+                validUpto: document.getElementById('validUpto'),
+                airports: document.getElementById('airports'),
+                terminals: document.getElementById('terminals')
+            };
+            
+            gridInputs = [];
+            for (let i = 0; i < 16; i++) {
+                gridInputs.push(document.getElementById('g' + i));
+            }
+
+            Object.values(inputs).forEach(input => input.addEventListener('input', drawSingleID));
+            gridInputs.forEach(input => input.addEventListener('input', drawSingleID));
+            
+            document.getElementById('photoInput').addEventListener('change', (e) => handleSingleUpload(e, 'photo'));
+            document.getElementById('sigInput').addEventListener('change', (e) => handleSingleUpload(e, 'signature'));
+
+            loadLogosFromAssets();
+            drawSingleID();
+            if (backCtx) {
+                renderBackPageToContext(backCtx);
+            }
+        }
+
         function loadLogosFromAssets() {
-            // Load left logo
             const leftLogo = new Image();
             leftLogo.onload = function() {
                 logoLeftImage = leftLogo;
@@ -289,7 +508,6 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             };
             leftLogo.src = 'Assests/left_logo.jpeg';
 
-            // Load right logo
             const rightLogo = new Image();
             rightLogo.onload = function() {
                 logoRightImage = rightLogo;
@@ -298,39 +516,6 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             rightLogo.src = 'Assests/right_logo.jpeg';
         }
 
-        // --- DOM Elements (Single Mode) ---
-        const singleCanvas = document.getElementById('idCanvas');
-        const singleCtx = singleCanvas.getContext('2d');
-        
-        const backCanvas = document.getElementById('backCanvas');
-        const backCtx = backCanvas.getContext('2d');
-        
-        const inputs = {
-            header1: document.getElementById('header1'),
-            header2: document.getElementById('header2'),
-            fullName: document.getElementById('fullName'),
-            role: document.getElementById('roleTitle'),
-            company: document.getElementById('companyName'),
-            aepNo: document.getElementById('aepNo'),
-            validFrom: document.getElementById('validFrom'),
-            validUpto: document.getElementById('validUpto'),
-            airports: document.getElementById('airports'),
-            terminals: document.getElementById('terminals')
-        };
-        
-        const gridInputs = [];
-        for (let i = 0; i < 16; i++) {
-            gridInputs.push(document.getElementById('g' + i));
-        }
-
-        // --- Event Listeners (Single Mode) ---
-        Object.values(inputs).forEach(input => input.addEventListener('input', drawSingleID));
-        gridInputs.forEach(input => input.addEventListener('input', drawSingleID));
-        
-        document.getElementById('photoInput').addEventListener('change', (e) => handleSingleUpload(e, 'photo'));
-        document.getElementById('sigInput').addEventListener('change', (e) => handleSingleUpload(e, 'signature'));
-
-        // --- STREAMING_CHUNK:Tab Switching Logic ---
         function switchTab(mode) {
             const btnSingle = document.getElementById('tabSingle');
             const btnBulk = document.getElementById('tabBulk');
@@ -349,7 +534,7 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                 formBulk.classList.add('hidden');
                 prevSingle.classList.remove('hidden');
                 prevBulk.classList.add('hidden');
-                prevBulk.classList.remove('flex'); // Remove flex when hidden
+                prevBulk.classList.remove('flex');
             } else {
                 btnBulk.classList.add('active', 'bg-blue-600', 'text-white');
                 btnBulk.classList.remove('bg-gray-200', 'text-gray-700');
@@ -359,12 +544,11 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                 formBulk.classList.remove('hidden');
                 formSingle.classList.add('hidden');
                 prevBulk.classList.remove('hidden');
-                prevBulk.classList.add('flex'); // Needs flex to layout properly
+                prevBulk.classList.add('flex');
                 prevSingle.classList.add('hidden');
             }
         }
 
-        // --- STREAMING_CHUNK:Single Mode Specific Logic ---
         function handleSingleUpload(event, type) {
             const file = event.target.files[0];
             if (!file) return;
@@ -386,7 +570,7 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
         }
 
         function drawSingleID() {
-            // Gather data from single form
+            if(!inputs) return;
             let gVals = [];
             for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
 
@@ -405,42 +589,28 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                 photo: photoImage,
                 signature: signatureImage
             };
-
-            // Call the universal render engine onto the visible single canvas
             renderCardToContext(singleCtx, cardData);
         }
 
         function downloadSingleID() {
             const btn = document.getElementById('downloadSingleBtn');
             const originalHTML = btn.innerHTML;
-            
-            // Disable button and show loading state
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btn.innerHTML = \`
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generating High-Res PDF...
-            \`;
+            btn.innerHTML = 'Generating PDF...';
 
-            // Use setTimeout to allow the UI to update before blocking the main thread with heavy PDF generation
             setTimeout(() => {
                 try {
                     drawSingleID();
                     const safeName = (inputs.fullName.value || 'ID').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                    
                     const { jsPDF } = window.jspdf;
                     
-                    // Create PDF with dimensions matching our canvas
                     const pdf = new jsPDF({
                         orientation: 'landscape',
                         unit: 'px',
                         format: [CANVAS_W, CANVAS_H] 
                     });
 
-                    // GATHER DATA FOR HIGH-RES EXPORT
                     let gVals = [];
                     for(let i=0; i<16; i++) gVals.push(gridInputs[i].value);
 
@@ -460,70 +630,57 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                         signature: signatureImage
                     };
 
-                    // HI-RES FRONT GENERATION (4x Pixel Density)
                     const SCALE = 4;
                     const frontCanvas = document.createElement('canvas');
                     frontCanvas.width = CANVAS_W * SCALE;
                     frontCanvas.height = CANVAS_H * SCALE;
                     const frontCtx = frontCanvas.getContext('2d');
-                    frontCtx.scale(SCALE, SCALE); // Scale context for crisp vector text
+                    frontCtx.scale(SCALE, SCALE);
                     renderCardToContext(frontCtx, cardData);
 
-                    // Page 1: Front of the ID (Export at 0.95 High Quality JPEG to save memory)
                     const frontImg = frontCanvas.toDataURL('image/jpeg', 0.95);
                     pdf.addImage(frontImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
 
-                    // Page 2: Back of the ID (Zone Definitions)
                     const backImg = getBackPageDataUrl();
                     pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
                     pdf.addImage(backImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
 
-                    pdf.save(\`\${safeName}_id_card.pdf\`);
+                    pdf.save(safeName + "_id_card.pdf");
                 } catch (error) {
                     console.error("PDF generation failed:", error);
                     alert("An error occurred while generating the PDF. Check console for details.");
                 } finally {
-                    // Restore button state
                     btn.disabled = false;
                     btn.classList.remove('opacity-75', 'cursor-not-allowed');
                     btn.innerHTML = originalHTML;
                 }
-            }, 50); // Small delay allows UI to render loading state
+            }, 50);
         }
 
-        // --- STREAMING_CHUNK:Bulk Mode UI and File Handling Logic ---
+        // Setup bulk upload listeners directly because they exist in DOM (even if hidden)
         document.getElementById('bulkFolderInput').addEventListener('change', (e) => {
             const files = e.target.files;
-            bulkImageFiles.clear(); // Reset map
-            
+            bulkImageFiles.clear(); 
             for(let i=0; i<files.length; i++) {
                 const file = files[i];
                 const fullName = file.name.toLowerCase();
-                
-                // Get the name without the extension
                 const lastDot = fullName.lastIndexOf('.');
                 const baseName = lastDot !== -1 ? fullName.substring(0, lastDot) : fullName;
-                
-                // Store both the full name and the base name so it can match either way
                 bulkImageFiles.set(fullName, file);
                 bulkImageFiles.set(baseName, file);
             }
-            
             const label = document.getElementById('bulkFolderLabel');
             const stats = document.getElementById('folderStats');
-            label.innerText = \`✓ Loaded \${files.length} images\`;
-            stats.innerText = \`Folder indexed successfully.\`;
+            label.innerText = "✓ Loaded " + files.length + " images";
+            stats.innerText = "Folder indexed successfully.";
             stats.classList.remove('hidden');
-            
             checkBulkReady();
         });
 
         document.getElementById('bulkCsvInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            document.getElementById('bulkCsvLabel').innerText = \`✓ \${file.name}\`;
-            
+            document.getElementById('bulkCsvLabel').innerText = "✓ " + file.name;
             const reader = new FileReader();
             reader.onload = function(evt) {
                 parseCSV(evt.target.result);
@@ -532,38 +689,32 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             reader.readAsText(file);
         });
 
-        // Helper: Parse raw CSV text into the bulkCsvData 2D array
         function parseCSV(str) {
             bulkCsvData = [];
             let row = [];
             let inQuotes = false;
             let val = "";
-            
             for (let i = 0; i < str.length; i++) {
                 let cc = str[i], nc = str[i+1];
                 if (cc === '"' && inQuotes && nc === '"') { 
-                    val += '"'; i++; // Handle escaped quotes inside a quoted string
+                    val += '"'; i++;
                 } else if (cc === '"') { 
-                    inQuotes = !inQuotes; // Toggle inQuotes state
+                    inQuotes = !inQuotes;
                 } else if (cc === ',' && !inQuotes) { 
-                    row.push(val); val = ""; // End of field
-                } else if ((cc === '\\n' || cc === '\\r') && !inQuotes) { // End of row
-                    if (cc === '\\r' && nc === '\\n') i++; // Skip \\n if it's \\r\\n
+                    row.push(val); val = "";
+                } else if ((cc === '\n' || cc === '\r') && !inQuotes) {
+                    if (cc === '\r' && nc === '\n') i++;
                     row.push(val);
-                    // Only add row if it has data (ignores blank lines at end of file)
                     if (row.length > 1 || row[0] !== "") bulkCsvData.push(row);
                     row = []; val = "";
                 } else { 
                     val += cc; 
                 }
             }
-            // Add the very last row if the file doesn't end with a newline
             if (row.length > 1 || row[0] !== "") {
                 row.push(val);
                 bulkCsvData.push(row);
             }
-            
-            // Remove the first row (Header row) so we don't try to make an ID card out of column names
             if (bulkCsvData.length > 0) {
                 bulkCsvData.shift(); 
             }
@@ -578,22 +729,16 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             }
         }
 
-        // Helper: Extract base filename (without extension) from full Windows/Mac paths in CSV
         function getBaseNameFromPath(fullPath) {
             if (!fullPath) return "";
-            // Replace backslashes with forward slashes, then split by slash and take last part
-            let filename = fullPath.replace(/\\\\/g, '/').split('/').pop().trim().toLowerCase();
-            
-            // Strip the extension if it exists so we just have the core name
+            let filename = fullPath.replace(/\\/g, '/').split('/').pop().trim().toLowerCase();
             const lastDot = filename.lastIndexOf('.');
             if (lastDot !== -1) {
                 filename = filename.substring(0, lastDot);
             }
-            
             return filename;
         }
 
-        // Helper: Load a File object into an Image object async
         function fileToImage(file) {
             return new Promise((resolve, reject) => {
                 if(!file) { resolve(null); return; }
@@ -609,7 +754,6 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             });
         }
 
-        // --- STREAMING_CHUNK:Bulk Processing Engine ---
         async function processBulkData() {
             const btn = document.getElementById('processBulkBtn');
             const progress = document.getElementById('bulkProgressText');
@@ -618,7 +762,6 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             const errorList = document.getElementById('errorList');
             const dlBtn = document.getElementById('downloadPdfBtn');
 
-            // Reset UI
             btn.disabled = true;
             btn.innerText = "Processing...";
             grid.innerHTML = '';
@@ -630,13 +773,11 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             let successCount = 0;
             let errorCount = 0;
 
-            // Process row by row
             for (let i = 0; i < bulkCsvData.length; i++) {
                 const cols = bulkCsvData[i];
-                progress.innerText = \`Processing row \${i + 1} of \${bulkCsvData.length}...\`;
+                progress.innerText = "Processing row " + (i + 1) + " of " + bulkCsvData.length + "...";
                 
                 try {
-                    // Extract data mapped to A-Z logic provided in prompt
                     const aepNo = cols[4] || '';
                     const fullName = cols[1] || '';
                     const role = cols[2] || '';
@@ -648,7 +789,6 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                     const terminals = cols[8] || '';
                     const airports = cols[7] || '';
                     
-                    // Grid J to y (indices 9 to 24)
                     let gridVals = [];
                     for(let k=9; k<=24; k++) {
                         gridVals.push(cols[k] ? cols[k].trim() : '');
@@ -656,23 +796,20 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
 
                     if (!fullName) throw new Error("Missing Name");
                     
-                    // Match Images (using base names without extensions)
                     const photoName = getBaseNameFromPath(photoPath);
                     const sigName = getBaseNameFromPath(sigPath);
 
                     const photoFile = bulkImageFiles.get(photoName);
                     const sigFile = bulkImageFiles.get(sigName);
 
-                    if (!photoFile) throw new Error(\`Photo missing in folder: \${photoPath}\`);
-                    if (!sigFile) throw new Error(\`Signature missing in folder: \${sigPath}\`);
+                    if (!photoFile) throw new Error("Photo missing in folder: " + photoPath);
+                    if (!sigFile) throw new Error("Signature missing in folder: " + sigPath);
 
-                    // Await image loading
                     const photoImg = await fileToImage(photoFile);
                     const sigImg = await fileToImage(sigFile);
 
-                    // Compile Card Data
                     const cardData = {
-                        header1: document.getElementById('header1').value, // Use universal headers from single form
+                        header1: document.getElementById('header1').value,
                         header2: document.getElementById('header2').value,
                         fullName: fullName,
                         role: role,
@@ -687,8 +824,7 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                         signature: sigImg
                     };
 
-                    // Create a HIGH-RES off-screen canvas to render this specific ID
-                    const SCALE = 4; // 4x Pixel Density for crisp printing
+                    const SCALE = 4; 
                     const tempCanvas = document.createElement('canvas');
                     tempCanvas.width = CANVAS_W * SCALE;
                     tempCanvas.height = CANVAS_H * SCALE;
@@ -697,11 +833,9 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                     
                     renderCardToContext(tempCtx, cardData);
 
-                   // Save high-quality image data for PDF as JPEG to prevent memory overload
                     const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
                     generatedCards.push(dataUrl);
 
-                    // Add to UI Grid
                     const imgNode = document.createElement('img');
                     imgNode.src = dataUrl;
                     imgNode.className = "w-full rounded shadow-sm border border-gray-200";
@@ -710,39 +844,29 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
                     successCount++;
 
                 } catch (err) {
-                    // Log error for this row
                     errorCount++;
                     errorLog.classList.remove('hidden');
                     const li = document.createElement('li');
-                    li.innerText = \`Row \${i+1} (\${cols[1] || 'Unknown'}): \${err.message}\`;
+                    li.innerText = "Row " + (i+1) + " (" + (cols[1] || 'Unknown') + "): " + err.message;
                     errorList.appendChild(li);
                 }
             }
 
-            // Finish
             btn.innerText = "Process & Generate Bulk IDs";
             btn.disabled = false;
-            progress.innerText = \`Done! Successfully generated \${successCount} IDs. \${errorCount > 0 ? \`Failed: \${errorCount}\` : ''}\`;
+            progress.innerText = "Done! Successfully generated " + successCount + " IDs." + (errorCount > 0 ? " Failed: " + errorCount : "");
             
             if (successCount > 0) {
                 dlBtn.classList.remove('hidden');
             }
         }
 
-         function downloadAllPdf() {
+        function downloadAllPdf() {
             const btn = document.getElementById('downloadPdfBtn');
             const originalHTML = btn.innerHTML;
-            
-            // Disable button and show loading state
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btn.innerHTML = \`
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generating PDF...
-            \`;
+            btn.innerHTML = 'Generating PDF...';
 
             // Use setTimeout to allow the UI to update before blocking the main thread
             setTimeout(() => {
@@ -1024,7 +1148,7 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             
             const vFrom = (data.validFrom || '').toUpperCase();
             const vUpto = (data.validUpto || '').toUpperCase();
-            const validityText = vFrom && vUpto ? \`\${vFrom} TO \${vUpto}\` : (vFrom || vUpto);
+            const vFrom = (data.validFrom || '').toUpperCase();
             drawDetailRow('VALIDITY', validityText, yPos.val);
 
             drawDetailRow('AIRPORTS', (data.airports || '').toUpperCase(), yPos.air);
@@ -1072,214 +1196,7 @@ const ID_GENERATOR_HTML = `<!DOCTYPE html>
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
         }
-
-        // --- Initialize ---
-        // Load logos from Assets folder
-        window.onload = function() {
-            loadLogosFromAssets();
-            drawSingleID();
-            
-            // Draw the static back page to the visual preview canvas once
-            if (backCtx) {
-                renderBackPageToContext(backCtx);
-            }
-        };
-
-    <\/script>
+            ctx.textBaseline = 'alphabetic';
 </body>
-</html>`;
-
-export default function App() {
-  const [uniqueId, setUniqueId] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  
-  // NEW STATE: Tracks if the user has successfully logged in
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const iframeRef = useRef(null);
-
-  useEffect(() => {
-    // Robustly inject the exact HTML into the iframe to ensure window.onload fires properly
-    if (isLoggedIn && iframeRef.current) {
-      const doc = iframeRef.current.contentWindow.document;
-      doc.open();
-      doc.write(ID_GENERATOR_HTML);
-      doc.close();
-    }
-  }, [isLoggedIn]);
-
-  // Utility function to hash the user's input securely
-  const hashInput = async (message) => {
-    const msgUint8 = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (isLocked) return;
-
-    // Basic validation
-    if (!uniqueId.trim()) {
-      setError('Please enter your unique ID to continue.');
-      return;
-    }
-
-    // Clear error and simulate loading
-    setError('');
-    setIsLoading(true);
-
-    try {
-      // Hash the input and compare it to the stored hash
-      const inputHash = await hashInput(uniqueId);
-      
-      // HELPER: Prints the hash of whatever you type to the browser console.
-      // Press F12 (or Right Click -> Inspect -> Console), type your desired ID, and copy the hash!
-      console.log("Hash for '" + uniqueId + "': " + inputHash);
-      
-      // Simulate network delay for security (prevents timing attacks)
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      if (inputHash === VALID_ID_HASH) {
-        setIsLoading(false);
-        setAttempts(0);
-        // Switch to the actual ID Card Generator Application
-        setIsLoggedIn(true);
-      } else {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-        setIsLoading(false);
-        
-        if (newAttempts >= 3) {
-          setIsLocked(true);
-          setError('Too many failed attempts. Login blocked.');
-        } else {
-          setError(`Invalid ID. You have ${3 - newAttempts} attempt(s) remaining.`);
         }
-      }
-    } catch (err) {
-      setIsLoading(false);
-      setError('An error occurred during authentication.');
-    }
-  };
-
-  // If successfully logged in, render the HTML application full-screen
-  if (isLoggedIn) {
-    return (
-      <iframe 
-        ref={iframeRef}
-        title="ID Card Generator Application"
-        className="w-full h-screen border-none bg-gray-100 overflow-hidden m-0 p-0"
-      />
-    );
-  }
-
-  // Otherwise, render the Login Screen
-  return (
-    <div className="min-h-screen w-full flex bg-white font-sans text-slate-900">
-      
-      {/* LEFT SIDE - LOGIN FORM */}
-      <div className="w-full lg:w-1/2 flex flex-col p-6 sm:p-12 md:p-20 relative">
-        
-        {/* Brand Logo (Top Left) */}
-        <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-slate-900">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white">
-            <IdCard size={20} />
-          </div>
-          ID Generator<span className="text-indigo-600">.</span>
-        </div>
-
-        {/* Center Form Content */}
-        <div className="flex-grow flex flex-col justify-center max-w-sm mx-auto w-full mt-12 lg:mt-0">
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className={`p-3 rounded-full mb-4 ${isLocked ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
-              {isLocked ? <Lock size={32} strokeWidth={2} /> : <ShieldCheck size={32} strokeWidth={2} />}
-            </div>
-            <h1 className="text-3xl font-extrabold mb-2">
-              {isLocked ? 'Access Blocked' : 'Welcome back'}
-            </h1>
-            <p className="text-slate-500 text-sm">
-              {isLocked 
-                ? 'You have exceeded the maximum number of login attempts.' 
-                : 'Access your ID generator dashboard using your secure unique identifier.'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="uniqueId" className="sr-only">
-                Unique ID
-              </label>
-              <input
-                id="uniqueId"
-                type="text"
-                value={uniqueId}
-                onChange={(e) => {
-                  if (!isLocked) {
-                    setUniqueId(e.target.value);
-                    setError('');
-                  }
-                }}
-                placeholder="Enter your unique ID"
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  error ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
-                } focus:outline-none focus:ring-4 transition-all duration-200 text-slate-700 bg-slate-50/50 focus:bg-white placeholder:text-slate-400 disabled:opacity-50 disabled:bg-slate-100`}
-                disabled={isLoading || isLocked}
-                autoFocus
-              />
-              {error && (
-                <p className="text-red-500 text-xs font-medium pl-1 mt-1">{error}</p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || isLocked}
-              className={`w-full text-white rounded-full px-4 py-3.5 font-semibold flex items-center justify-center gap-2 transition-all duration-200 mt-2 ${
-                isLocked 
-                  ? 'bg-red-600 cursor-not-allowed opacity-70' 
-                  : 'bg-slate-900 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed'
-              }`}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer Terms */}
-          <p className="text-center text-xs text-slate-400 mt-8 leading-relaxed">
-            By continuing, you agree to our <a href="#" className="underline hover:text-slate-600 transition-colors">Terms of Service</a> and <a href="#" className="underline hover:text-slate-600 transition-colors">Privacy Policy</a>.
-          </p>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE - IMAGE (Hidden on smaller screens) */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-slate-100 overflow-hidden">
-        <img 
-          src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" 
-          alt="Abstract colorful 3D shapes" 
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
-        <div className="absolute bottom-8 right-8 text-white/80 text-sm font-medium drop-shadow-md">
-          @IDGeneratorSystem
-        </div>
-      </div>
-
-    </div>
-  );
-}
+</body>
