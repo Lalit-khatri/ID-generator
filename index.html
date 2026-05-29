@@ -868,12 +868,9 @@
             btn.classList.add('opacity-75', 'cursor-not-allowed');
             btn.innerHTML = 'Generating PDF...';
 
-            // Use setTimeout to allow the UI to update before blocking the main thread
             setTimeout(() => {
                 try {
                     const { jsPDF } = window.jspdf;
-                    
-                    // Create PDF with dimensions exactly matching our canvas (landscape ID card)
                     const pdf = new jsPDF({
                         orientation: 'landscape',
                         unit: 'px',
@@ -882,70 +879,56 @@
 
                     const backPageImg = getBackPageDataUrl();
 
-                    // Add each generated card as a new page, followed by the back page
                     generatedCards.forEach((imgDataUrl, index) => {
                         if (index > 0) {
                             pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
                         }
-                        // Front Page
                         pdf.addImage(imgDataUrl, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
-                        
-                        // Back Page
                         pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
                         pdf.addImage(backPageImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
                     });
 
-                    // Trigger the download
                     pdf.save("Generated_ID_Cards.pdf");
                 } catch (error) {
                     console.error("Bulk PDF generation failed:", error);
                     alert("An error occurred while generating the bulk PDF. Check console for details.");
                 } finally {
-                    // Restore button state
                     btn.disabled = false;
                     btn.classList.remove('opacity-75', 'cursor-not-allowed');
                     btn.innerHTML = originalHTML;
                 }
-            }, 50); // Small delay allows UI to render loading state
+            }, 50);
         }
 
-        // --- STREAMING_CHUNK:Back Page Rendering Logic ---
         function getBackPageDataUrl() {
-            const SCALE = 4; // High resolution multiplier for crisp printing
+            const SCALE = 4;
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = CANVAS_W * SCALE;
             tempCanvas.height = CANVAS_H * SCALE;
             const ctx = tempCanvas.getContext('2d');
             ctx.scale(SCALE, SCALE);
             renderBackPageToContext(ctx);
-            return tempCanvas.toDataURL('image/jpeg', 0.95); // High quality JPEG
+            return tempCanvas.toDataURL('image/jpeg', 0.95);
         }
 
         function renderBackPageToContext(ctx) {
-            // 1. Background (Slightly gray to look like the back of a PVC card)
             ctx.fillStyle = '#f4f6f8';
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-            // Add border to canvas matching the front
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 4;
             ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
 
             ctx.fillStyle = '#111827';
             ctx.textAlign = 'center';
-            
-            // Title
             ctx.font = 'bold 32px Arial, sans-serif';
             ctx.fillText('Zone Definitions', CANVAS_W / 2, 45);
             ctx.textAlign = 'left';
 
-            // Two columns of definitions
             const leftX = 35;
             const rightX = 390;
             let startY = 80;
             const lineH = 24;
 
-            // Helper to draw bold key and normal value
             function drawDef(key, value, x, y) {
                 if(key) {
                     ctx.font = 'bold 17px Arial, sans-serif';
@@ -956,13 +939,11 @@
                     ctx.font = '17px Arial, sans-serif';
                     ctx.fillText(value, textX, y);
                 } else {
-                    // Just text (for wrapped lines)
                     ctx.font = '17px Arial, sans-serif';
-                    ctx.fillText(value, x + 30, y); // Indent to align with text above
+                    ctx.fillText(value, x + 30, y); 
                 }
             }
 
-            // Left Column
             drawDef('A', 'Arrival Hall', leftX, startY);
             drawDef('Si', 'Security Hold International', leftX, startY + lineH);
             drawDef('P', 'Apron Area', leftX, startY + lineH*2);
@@ -973,7 +954,6 @@
             drawDef('T', 'Terminal Building Other Than Security Hold,Customs And', leftX, startY + lineH*7);
             drawDef('', 'Immigration But Including Baggage Claim Area of Terminal', leftX, startY + lineH*8);
 
-            // Right Column
             drawDef('D', 'Departure Hall', rightX, startY);
             drawDef('Sd', 'Security Hold Domestic', rightX, startY + lineH);
             drawDef('B', 'Baggage Handling Area', rightX, startY + lineH*2);
@@ -982,7 +962,6 @@
             drawDef('C', 'Cargo Terminal', rightX, startY + lineH*5);
             drawDef('Cd', 'Cargo Domestic', rightX, startY + lineH*6);
 
-            // Footer lines
             const footerY = 305;
             const footLineH = 22;
             ctx.font = '16px Arial, sans-serif';
@@ -991,27 +970,21 @@
             ctx.fillText("New Delhi-01 (Contact No: 011-23311443/23355167).", leftX, footerY + footLineH*2);
             ctx.fillText("Replication and misuse of this card is punishable.", leftX, footerY + footLineH*3 + 5);
 
-            // Emphasized bottom line
             ctx.font = 'bold 20px Arial, sans-serif';
             ctx.fillText("AEP to be displayed above waist line at all times on duty.", leftX, footerY + footLineH*5);
         }
 
-       //  - Core Drawing Logic
         function renderCardToContext(ctx, data) {
-            // 1. Clear & Background
             ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-            // Add border to canvas
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 4;
             ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
 
-            // 2. Draw Header
             ctx.fillStyle = '#111827';
             ctx.textAlign = 'center';
-            
             ctx.font = 'bold 32px Arial, sans-serif';
             ctx.fillText((data.header1 || '').toUpperCase(), CANVAS_W / 2+30, 40);
             
@@ -1019,22 +992,20 @@
             ctx.fillText((data.header2 || '').toUpperCase(), CANVAS_W / 2+30, 70);
             ctx.textAlign = 'left';
 
-            // Draw Header Logos
             if (logoLeftImage) {
-                const maxW = 220; // Increased size
-                const maxH = 90;  // Increased size
+                const maxW = 220; 
+                const maxH = 90;  
                 const ratio = Math.min(maxW / logoLeftImage.width, maxH / logoLeftImage.height);
                 ctx.drawImage(logoLeftImage, 0, 5 + (80 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
             }
             if (logoRightImage) {
-                const maxW = 110; // Increased size
-                const maxH = 80;  // Increased size
+                const maxW = 110; 
+                const maxH = 80;  
                 const ratio = Math.min(maxW / logoRightImage.width, maxH / logoRightImage.height);
                 const w = logoRightImage.width * ratio;
                 ctx.drawImage(logoRightImage, CANVAS_W - 25 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
             }
 
-            // Separator Line
             ctx.beginPath();
             ctx.moveTo(0, 90);
             ctx.lineTo(CANVAS_W-20, 90);
@@ -1044,7 +1015,6 @@
 
             const startY = 100;
 
-            // 3. Draw Profile Photo & Signature
             const boxX = 10;
             const boxW = 190;
             const photoH = 237;
@@ -1076,16 +1046,13 @@
             }
 
             ctx.strokeStyle = '#1f2937';
-            ctx.lineWidth = 1; // Made thinner
+            ctx.lineWidth = 1; 
             ctx.strokeRect(boxX, startY, boxW, photoH + sigH);
             
-
-            // 4. Draw User Information Text
             const textX = 240-25;
             const maxTextWidth = 260;
             ctx.fillStyle = '#111827'; 
             
-            // Name Wrapping Logic
             ctx.font = 'bold 28px Arial, sans-serif';
             const nameText = (data.fullName || '').toUpperCase();
             const words = nameText.split(' ');
@@ -1113,7 +1080,6 @@
 
             const offset = (1) * nameLineHeight;
 
-            // Helper to truncate text
             function getTruncatedText(text, maxWidth) {
                 let truncated = text;
                 while (ctx.measureText(truncated).width > maxWidth && truncated.length > 0) {
@@ -1129,7 +1095,6 @@
             ctx.fillText(roleText, textX, startY + 75 + offset);
             ctx.fillText(companyText, textX, startY + 115 + offset);
 
-            // Detailed Fields
             const labelX = textX;
             const colonX = 355; 
             const valueX = 362;
@@ -1148,22 +1113,20 @@
             
             const vFrom = (data.validFrom || '').toUpperCase();
             const vUpto = (data.validUpto || '').toUpperCase();
-            const vFrom = (data.validFrom || '').toUpperCase();
+            const validityText = vFrom && vUpto ? (vFrom + " TO " + vUpto) : (vFrom || vUpto);
             drawDetailRow('VALIDITY', validityText, yPos.val);
 
             drawDetailRow('AIRPORTS', (data.airports || '').toUpperCase(), yPos.air);
             drawDetailRow('TERMINALS', (data.terminals || '').toUpperCase(), yPos.term);
 
-            // 5. Draw The Grid Block
-            drawGridToContext(ctx, 500, startY+10, data.grid); // Shifted slightly left to accommodate larger boxes
+            drawGridToContext(ctx, 500, startY+10, data.grid);
         }
 
         function drawGridToContext(ctx, startX, startY, gridValues) {
-            const boxH = 30; // Made bigger
-            const boxW = 42; // Made bigger
+            const boxH = 30; 
+            const boxW = 42; 
             const gap = 8;
             
-            // Background colors map
             const bgs = [
                 '#f5b041', '#f5b041', '#f5b041', '#f5b041',
                 '#ffffff', '#ffffff', '#ffffff', '#ffffff',
@@ -1182,7 +1145,7 @@
                 ctx.fillRect(x, y, boxW, boxH);
                 
                 ctx.strokeStyle = '#1f2937';
-                ctx.lineWidth = 4; // Made thicker
+                ctx.lineWidth = 4;
                 ctx.strokeRect(x, y, boxW, boxH);
 
                 if (gridValues && gridValues[i]) {
@@ -1196,7 +1159,6 @@
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
         }
-            ctx.textBaseline = 'alphabetic';
+    </script>
 </body>
-        }
-</body>
+</html>
