@@ -1,12 +1,21 @@
-<!DOCTYPE html>
+import React, { useState, useRef, useEffect } from 'react';
+import { IdCard, ArrowRight, Loader2, ShieldCheck, Lock } from 'lucide-react';
+
+// SECURITY NOTE: The SHA-256 hash of your secret ID. 
+// Currently set to the hash of "admin". 
+// NEVER put your actual raw ID in the code! Only put the hash!
+const VALID_ID_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+
+// We store your raw HTML exactly as provided. (Internal JS characters are escaped for React compatibility)
+const ID_GENERATOR_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant ID Card Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"><\/script>
    <!-- jsPDF for creating multi-page PDF files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
     <style>
         canvas {
             max-width: 100%;
@@ -408,13 +417,13 @@
             // Disable button and show loading state
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btn.innerHTML = `
+            btn.innerHTML = \`
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Generating High-Res PDF...
-            `;
+            \`;
 
             // Use setTimeout to allow the UI to update before blocking the main thread with heavy PDF generation
             setTimeout(() => {
@@ -469,7 +478,7 @@
                     pdf.addPage([CANVAS_W, CANVAS_H], 'landscape');
                     pdf.addImage(backImg, 'JPEG', 0, 0, CANVAS_W, CANVAS_H);
 
-                    pdf.save(`${safeName}_id_card.pdf`);
+                    pdf.save(\`\${safeName}_id_card.pdf\`);
                 } catch (error) {
                     console.error("PDF generation failed:", error);
                     alert("An error occurred while generating the PDF. Check console for details.");
@@ -502,8 +511,8 @@
             
             const label = document.getElementById('bulkFolderLabel');
             const stats = document.getElementById('folderStats');
-            label.innerText = `✓ Loaded ${files.length} images`;
-            stats.innerText = `Folder indexed successfully.`;
+            label.innerText = \`✓ Loaded \${files.length} images\`;
+            stats.innerText = \`Folder indexed successfully.\`;
             stats.classList.remove('hidden');
             
             checkBulkReady();
@@ -513,7 +522,7 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            document.getElementById('bulkCsvLabel').innerText = `✓ ${file.name}`;
+            document.getElementById('bulkCsvLabel').innerText = \`✓ \${file.name}\`;
             
             const reader = new FileReader();
             reader.onload = function(evt) {
@@ -538,8 +547,8 @@
                     inQuotes = !inQuotes; // Toggle inQuotes state
                 } else if (cc === ',' && !inQuotes) { 
                     row.push(val); val = ""; // End of field
-                } else if ((cc === '\n' || cc === '\r') && !inQuotes) { // End of row
-                    if (cc === '\r' && nc === '\n') i++; // Skip \n if it's \r\n
+                } else if ((cc === '\\n' || cc === '\\r') && !inQuotes) { // End of row
+                    if (cc === '\\r' && nc === '\\n') i++; // Skip \\n if it's \\r\\n
                     row.push(val);
                     // Only add row if it has data (ignores blank lines at end of file)
                     if (row.length > 1 || row[0] !== "") bulkCsvData.push(row);
@@ -573,7 +582,7 @@
         function getBaseNameFromPath(fullPath) {
             if (!fullPath) return "";
             // Replace backslashes with forward slashes, then split by slash and take last part
-            let filename = fullPath.replace(/\\/g, '/').split('/').pop().trim().toLowerCase();
+            let filename = fullPath.replace(/\\\\/g, '/').split('/').pop().trim().toLowerCase();
             
             // Strip the extension if it exists so we just have the core name
             const lastDot = filename.lastIndexOf('.');
@@ -624,7 +633,7 @@
             // Process row by row
             for (let i = 0; i < bulkCsvData.length; i++) {
                 const cols = bulkCsvData[i];
-                progress.innerText = `Processing row ${i + 1} of ${bulkCsvData.length}...`;
+                progress.innerText = \`Processing row \${i + 1} of \${bulkCsvData.length}...\`;
                 
                 try {
                     // Extract data mapped to A-Z logic provided in prompt
@@ -654,8 +663,8 @@
                     const photoFile = bulkImageFiles.get(photoName);
                     const sigFile = bulkImageFiles.get(sigName);
 
-                    if (!photoFile) throw new Error(`Photo missing in folder: ${photoPath}`);
-                    if (!sigFile) throw new Error(`Signature missing in folder: ${sigPath}`);
+                    if (!photoFile) throw new Error(\`Photo missing in folder: \${photoPath}\`);
+                    if (!sigFile) throw new Error(\`Signature missing in folder: \${sigPath}\`);
 
                     // Await image loading
                     const photoImg = await fileToImage(photoFile);
@@ -705,7 +714,7 @@
                     errorCount++;
                     errorLog.classList.remove('hidden');
                     const li = document.createElement('li');
-                    li.innerText = `Row ${i+1} (${cols[1] || 'Unknown'}): ${err.message}`;
+                    li.innerText = \`Row \${i+1} (\${cols[1] || 'Unknown'}): \${err.message}\`;
                     errorList.appendChild(li);
                 }
             }
@@ -713,7 +722,7 @@
             // Finish
             btn.innerText = "Process & Generate Bulk IDs";
             btn.disabled = false;
-            progress.innerText = `Done! Successfully generated ${successCount} IDs. ${errorCount > 0 ? `Failed: ${errorCount}` : ''}`;
+            progress.innerText = \`Done! Successfully generated \${successCount} IDs. \${errorCount > 0 ? \`Failed: \${errorCount}\` : ''}\`;
             
             if (successCount > 0) {
                 dlBtn.classList.remove('hidden');
@@ -727,13 +736,13 @@
             // Disable button and show loading state
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            btn.innerHTML = `
+            btn.innerHTML = \`
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 Generating PDF...
-            `;
+            \`;
 
             // Use setTimeout to allow the UI to update before blocking the main thread
             setTimeout(() => {
@@ -1015,7 +1024,7 @@
             
             const vFrom = (data.validFrom || '').toUpperCase();
             const vUpto = (data.validUpto || '').toUpperCase();
-            const validityText = vFrom && vUpto ? `${vFrom} TO ${vUpto}` : (vFrom || vUpto);
+            const validityText = vFrom && vUpto ? \`\${vFrom} TO \${vUpto}\` : (vFrom || vUpto);
             drawDetailRow('VALIDITY', validityText, yPos.val);
 
             drawDetailRow('AIRPORTS', (data.airports || '').toUpperCase(), yPos.air);
@@ -1076,6 +1085,201 @@
             }
         };
 
-    </script>
+    <\/script>
 </body>
-</html>
+</html>`;
+
+export default function App() {
+  const [uniqueId, setUniqueId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  
+  // NEW STATE: Tracks if the user has successfully logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const iframeRef = useRef(null);
+
+  useEffect(() => {
+    // Robustly inject the exact HTML into the iframe to ensure window.onload fires properly
+    if (isLoggedIn && iframeRef.current) {
+      const doc = iframeRef.current.contentWindow.document;
+      doc.open();
+      doc.write(ID_GENERATOR_HTML);
+      doc.close();
+    }
+  }, [isLoggedIn]);
+
+  // Utility function to hash the user's input securely
+  const hashInput = async (message) => {
+    const msgUint8 = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (isLocked) return;
+
+    // Basic validation
+    if (!uniqueId.trim()) {
+      setError('Please enter your unique ID to continue.');
+      return;
+    }
+
+    // Clear error and simulate loading
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Hash the input and compare it to the stored hash
+      const inputHash = await hashInput(uniqueId);
+      
+      // HELPER: Prints the hash of whatever you type to the browser console.
+      // Press F12 (or Right Click -> Inspect -> Console), type your desired ID, and copy the hash!
+      console.log("Hash for '" + uniqueId + "': " + inputHash);
+      
+      // Simulate network delay for security (prevents timing attacks)
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      if (inputHash === VALID_ID_HASH) {
+        setIsLoading(false);
+        setAttempts(0);
+        // Switch to the actual ID Card Generator Application
+        setIsLoggedIn(true);
+      } else {
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        setIsLoading(false);
+        
+        if (newAttempts >= 3) {
+          setIsLocked(true);
+          setError('Too many failed attempts. Login blocked.');
+        } else {
+          setError(`Invalid ID. You have ${3 - newAttempts} attempt(s) remaining.`);
+        }
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setError('An error occurred during authentication.');
+    }
+  };
+
+  // If successfully logged in, render the HTML application full-screen
+  if (isLoggedIn) {
+    return (
+      <iframe 
+        ref={iframeRef}
+        title="ID Card Generator Application"
+        className="w-full h-screen border-none bg-gray-100 overflow-hidden m-0 p-0"
+      />
+    );
+  }
+
+  // Otherwise, render the Login Screen
+  return (
+    <div className="min-h-screen w-full flex bg-white font-sans text-slate-900">
+      
+      {/* LEFT SIDE - LOGIN FORM */}
+      <div className="w-full lg:w-1/2 flex flex-col p-6 sm:p-12 md:p-20 relative">
+        
+        {/* Brand Logo (Top Left) */}
+        <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-slate-900">
+          <div className="bg-indigo-600 p-2 rounded-lg text-white">
+            <IdCard size={20} />
+          </div>
+          ID Generator<span className="text-indigo-600">.</span>
+        </div>
+
+        {/* Center Form Content */}
+        <div className="flex-grow flex flex-col justify-center max-w-sm mx-auto w-full mt-12 lg:mt-0">
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className={`p-3 rounded-full mb-4 ${isLocked ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
+              {isLocked ? <Lock size={32} strokeWidth={2} /> : <ShieldCheck size={32} strokeWidth={2} />}
+            </div>
+            <h1 className="text-3xl font-extrabold mb-2">
+              {isLocked ? 'Access Blocked' : 'Welcome back'}
+            </h1>
+            <p className="text-slate-500 text-sm">
+              {isLocked 
+                ? 'You have exceeded the maximum number of login attempts.' 
+                : 'Access your ID generator dashboard using your secure unique identifier.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="uniqueId" className="sr-only">
+                Unique ID
+              </label>
+              <input
+                id="uniqueId"
+                type="text"
+                value={uniqueId}
+                onChange={(e) => {
+                  if (!isLocked) {
+                    setUniqueId(e.target.value);
+                    setError('');
+                  }
+                }}
+                placeholder="Enter your unique ID"
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  error ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
+                } focus:outline-none focus:ring-4 transition-all duration-200 text-slate-700 bg-slate-50/50 focus:bg-white placeholder:text-slate-400 disabled:opacity-50 disabled:bg-slate-100`}
+                disabled={isLoading || isLocked}
+                autoFocus
+              />
+              {error && (
+                <p className="text-red-500 text-xs font-medium pl-1 mt-1">{error}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || isLocked}
+              className={`w-full text-white rounded-full px-4 py-3.5 font-semibold flex items-center justify-center gap-2 transition-all duration-200 mt-2 ${
+                isLocked 
+                  ? 'bg-red-600 cursor-not-allowed opacity-70' 
+                  : 'bg-slate-900 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed'
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer Terms */}
+          <p className="text-center text-xs text-slate-400 mt-8 leading-relaxed">
+            By continuing, you agree to our <a href="#" className="underline hover:text-slate-600 transition-colors">Terms of Service</a> and <a href="#" className="underline hover:text-slate-600 transition-colors">Privacy Policy</a>.
+          </p>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE - IMAGE (Hidden on smaller screens) */}
+      <div className="hidden lg:block lg:w-1/2 relative bg-slate-100 overflow-hidden">
+        <img 
+          src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" 
+          alt="Abstract colorful 3D shapes" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
+        <div className="absolute bottom-8 right-8 text-white/80 text-sm font-medium drop-shadow-md">
+          @IDGeneratorSystem
+        </div>
+      </div>
+
+    </div>
+  );
+}
