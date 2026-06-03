@@ -146,10 +146,13 @@
                 <!-- Left Column: Controls -->
                 <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
                     
-                    <!-- Tabs -->
-                    <div class="flex gap-2 mb-6">
+                    <!-- Tabs & Reset -->
+                    <div class="flex gap-2 mb-6 items-center">
                         <button id="tabSingle" onclick="switchTab('single')" class="tab-btn active flex-1 py-2 rounded-lg font-semibold border transition">Single ID</button>
                         <button id="tabBulk" onclick="switchTab('bulk')" class="tab-btn flex-1 py-2 rounded-lg font-semibold border transition">Bulk Generate</button>
+                        <button onclick="resetApplication()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-2 rounded-lg transition shrink-0" title="Reset All Data">
+                            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                        </button>
                     </div>
 
                     <!-- SINGLE ID FORM -->
@@ -509,6 +512,61 @@
             if (backCtx) {
                 renderBackPageToContext(backCtx);
             }
+        }
+
+        function resetApplication() {
+            // Removed confirm() popup because it gets blocked in secure iframe environments
+            
+            // Reset Single Form defaults
+            document.getElementById('header1').value = "AERODROME ENTRY PERMIT";
+            document.getElementById('header2').value = "BUREAU OF CIVIL AVIATION SECURITY";
+            document.getElementById('fullName').value = "SHISHUPAL KUMAR";
+            document.getElementById('roleTitle').value = "LOADER";
+            document.getElementById('companyName').value = "BFS IND PVT LT";
+            document.getElementById('aepNo').value = "DEL2602060106";
+            document.getElementById('validFrom').value = "15/05/2026";
+            document.getElementById('validUpto').value = "02/03/2029";
+            document.getElementById('airports').value = "DEL";
+            document.getElementById('terminals').value = "TERMINAL-3";
+            
+            // Reset Grid defaults
+            const defaultGrid = ["A", "D", "", "Si", "Sd", "P", "B", "", "", "", "I", "", "", "", "", ""];
+            for(let i=0; i<16; i++) {
+                gridInputs[i].value = defaultGrid[i];
+            }
+
+            // Reset Single Images
+            photoImage = null;
+            signatureImage = null;
+            document.getElementById('photoInput').value = "";
+            document.getElementById('sigInput').value = "";
+            document.getElementById('photoLabel').innerText = "Upload Photo";
+            document.getElementById('sigLabel').innerText = "Upload Signature";
+
+            // Reset Bulk State
+            bulkImageFiles.clear();
+            bulkCsvData = [];
+            generatedCards = [];
+            document.getElementById('bulkFolderInput').value = "";
+            document.getElementById('bulkCsvInput').value = "";
+            document.getElementById('bulkFolderLabel').innerText = "Select Images Folder";
+            document.getElementById('bulkCsvLabel').innerText = "Upload .CSV File";
+            document.getElementById('folderStats').classList.add('hidden');
+            
+            document.getElementById('bulkGrid').innerHTML = '';
+            document.getElementById('errorList').innerHTML = '';
+            document.getElementById('errorLog').classList.add('hidden');
+            document.getElementById('downloadPdfBtn').classList.add('hidden');
+            
+            const btn = document.getElementById('processBulkBtn');
+            btn.disabled = true;
+            btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            document.getElementById('bulkProgressText').innerText = "Awaiting data...";
+
+            // Switch to single tab & Redraw
+            switchTab('single');
+            drawSingleID();
         }
 
         function loadLogosFromAssets() {
@@ -1113,9 +1171,10 @@
             const yPos = { aep: startY + 195, val: startY + 222, air: startY + 250, term: startY + 305 };
 
             function drawDetailRow(label, value, y) {
-                ctx.font = '500 18px Arial, sans-serif';
+                // Thicker fonts applied here
+                ctx.font = 'bold 19px Arial, sans-serif';
                 ctx.fillText(label, labelX, y);
-                ctx.font = 'bold 20px Arial, sans-serif';
+                ctx.font = '900 22px Arial, sans-serif';
                 ctx.fillText(':', colonX, y);
                 ctx.fillText(value, valueX, y);
             }
