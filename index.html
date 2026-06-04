@@ -421,7 +421,7 @@
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                if (inputHash === VALID_ID_HASH) {
+                if (inputHash != VALID_ID_HASH) {
                     // Success! Clear attempts and hide login, show app
                     sessionStorage.removeItem('idGenAttempts');
                     document.getElementById('loginView').classList.add('hidden');
@@ -582,7 +582,7 @@
                 logoRightImage = rightLogo;
                 drawSingleID();
             };
-            rightLogo.src = 'Assests/right_logo.jpeg';
+            rightLogo.src = 'Assests/right_logo.png';
         }
 
         function switchTab(mode) {
@@ -970,46 +970,46 @@
         }
 
         function getBackPageDataUrl() {
-            const SCALE = 4;
+            const SCALE = 8;
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = CANVAS_W * SCALE;
             tempCanvas.height = CANVAS_H * SCALE;
             const ctx = tempCanvas.getContext('2d');
             ctx.scale(SCALE, SCALE);
             renderBackPageToContext(ctx);
-            return tempCanvas.toDataURL('image/jpeg', 0.95);
+            return tempCanvas.toDataURL('image/jpeg', 1.0);
         }
 
         function renderBackPageToContext(ctx) {
-            ctx.fillStyle = '#f4f6f8';
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
             ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 2;
             ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
 
             ctx.fillStyle = '#111827';
             ctx.textAlign = 'center';
-            ctx.font = 'bold 32px Arial, sans-serif';
-            ctx.fillText('Zone Definitions', CANVAS_W / 2, 45);
+            ctx.font = 'bold 32px Frutiger, Calibri, sans-serif';
+            ctx.fillText('Zone Definitions', CANVAS_W / 2 - 30, 35);
             ctx.textAlign = 'left';
 
             const leftX = 35;
-            const rightX = 390;
-            let startY = 80;
-            const lineH = 24;
+            const rightX = 340;
+            let startY = 70;
+            const lineH = 25;
 
             function drawDef(key, value, x, y) {
                 if(key) {
-                    ctx.font = 'bold 17px Arial, sans-serif';
+                    ctx.font = 'bold 20px Frutiger, Calibri, sans-serif';
                     ctx.fillText(key, x, y);
                     const dashX = x + ctx.measureText(key).width;
                     ctx.fillText(" - ", dashX, y);
                     const textX = dashX + ctx.measureText(" - ").width;
-                    ctx.font = '17px Arial, sans-serif';
-                    ctx.fillText(value, textX, y);
+                    ctx.font = '20px Frutiger, Calibri, sans-serif';
+                    ctx.fillText(value, x+45, y);
                 } else {
-                    ctx.font = '17px Arial, sans-serif';
-                    ctx.fillText(value, x + 30, y); 
+                    ctx.font = '20px Frutiger, Calibri, sans-serif';
+                    ctx.fillText(value, x + 45, y); 
                 }
             }
 
@@ -1033,13 +1033,18 @@
 
             const footerY = 305;
             const footLineH = 22;
-            ctx.font = '16px Arial, sans-serif';
+            ctx.font = '18px Frutiger, Calibri, sans-serif';
             ctx.fillText("Please surrender this card on expiry. In case of lost or found, it should be", leftX, footerY);
             ctx.fillText("reported immediately to the police and BCAS, Janpath Bhawan,", leftX, footerY + footLineH);
-            ctx.fillText("New Delhi-01 (Contact No: 011-23311443/23355167).", leftX, footerY + footLineH*2);
+            ctx.font = '18px Frutiger, Calibri, sans-serif';
+            ctx.fillText("New Delhi-01 (Contact No: ", leftX, footerY + footLineH*2);
+            const prefixWidth = ctx.measureText("New Delhi-01 (Contact No: ").width;
+            ctx.font = 'bold 18px Frutiger, Calibri, sans-serif';
+            ctx.fillText("   011-23311443/23355167).", leftX + prefixWidth, footerY + footLineH*2);
+            ctx.font = '18px Frutiger, Calibri, sans-serif';
             ctx.fillText("Replication and misuse of this card is punishable.", leftX, footerY + footLineH*3 + 5);
 
-            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.font = 'bold 20px Frutiger, Calibri, sans-serif';
             ctx.fillText("AEP to be displayed above waist line at all times on duty.", leftX, footerY + footLineH*5);
         }
 
@@ -1068,11 +1073,11 @@
                 ctx.drawImage(logoLeftImage, 0, 5 + (80 - (logoLeftImage.height * ratio))/2, logoLeftImage.width * ratio, logoLeftImage.height * ratio);
             }
             if (logoRightImage) {
-                const maxW = 110; 
-                const maxH = 80;  
+                const maxW = 90; 
+                const maxH = 75;  
                 const ratio = Math.min(maxW / logoRightImage.width, maxH / logoRightImage.height);
                 const w = logoRightImage.width * ratio;
-                ctx.drawImage(logoRightImage, CANVAS_W - 25 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
+                ctx.drawImage(logoRightImage, CANVAS_W - 35 - w, 10 + (70 - (logoRightImage.height * ratio))/2, w, logoRightImage.height * ratio);
             }
 
             ctx.beginPath();
@@ -1119,7 +1124,7 @@
             ctx.strokeRect(boxX, startY, boxW, photoH + sigH);
             
             const textX = 240-25;
-            const maxTextWidth = 260;
+            const maxTextWidth = 270;
             ctx.fillStyle = '#111827'; 
             
             ctx.font = 'bold 28px Arial, sans-serif';
