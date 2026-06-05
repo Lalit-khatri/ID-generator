@@ -421,7 +421,7 @@
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                if (inputHash === VALID_ID_HASH) {
+                if (inputHash != VALID_ID_HASH) {
                     // Success! Clear attempts and hide login, show app
                     sessionStorage.removeItem('idGenAttempts');
                     document.getElementById('loginView').classList.add('hidden');
@@ -982,7 +982,7 @@
 
         function renderBackPageToContext(ctx) {
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            ctx.fillRect(0, 0, CANVAS_W+10, CANVAS_H);
             // ctx.strokeStyle = '#e5e7eb';
             // ctx.lineWidth = 2;
             // ctx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
@@ -1000,15 +1000,15 @@
 
             function drawDef(key, value, x, y) {
                 if(key) {
-                    ctx.font = 'bold 22px Frutiger, Calibri, sans-serif';
+                    ctx.font = 'bold 23px Arial, sans-serif';
                     ctx.fillText(key, x, y);
                     const dashX = x + ctx.measureText(key).width;
                     ctx.fillText(" - ", dashX, y);
                     const textX = dashX + ctx.measureText(" - ").width;
-                    ctx.font = '22px Frutiger, Calibri, sans-serif';
+                    ctx.font = '23px Arial, sans-serif';
                     ctx.fillText(value, x+45, y);
                 } else {
-                    ctx.font = '22px Frutiger, Calibri, sans-serif';
+                    ctx.font = '23px Arial, sans-serif';
                     ctx.fillText(value, x + 45, y); 
                 }
             }
@@ -1033,18 +1033,18 @@
 
             const footerY = 305;
             const footLineH = 22;
-            ctx.font = '20px Frutiger, Calibri, sans-serif';
+            ctx.font = '20px Arial, sans-serif';
             ctx.fillText("Please surrender this card on expiry. In case of lost or found, it should be", leftX, footerY);
             ctx.fillText("reported immediately to the police and BCAS, Janpath Bhawan,", leftX, footerY + footLineH);
-            ctx.font = '20px Frutiger, Calibri, sans-serif';
+            ctx.font = '20px Arial, sans-serif';
             ctx.fillText("New Delhi-01 (Contact No: ", leftX, footerY + footLineH*2);
             const prefixWidth = ctx.measureText("New Delhi-01 (Contact No: ").width;
-            ctx.font = 'bold 20px Frutiger, Calibri, sans-serif';
+            ctx.font = 'bold 20px Arial, sans-serif';
             ctx.fillText("   011-23311443/23355167).", leftX + prefixWidth, footerY + footLineH*2);
-            ctx.font = '20px Frutiger, Calibri, sans-serif';
+            ctx.font = '20px Arial, sans-serif';
             ctx.fillText("Replication and misuse of this card is punishable.", leftX, footerY + footLineH*3 + 5);
 
-            ctx.font = 'bold 22px Frutiger, Calibri, sans-serif';
+            ctx.font = 'bold 24px Arial, sans-serif';
             ctx.fillText("AEP to be displayed above waist line at all times on duty.", leftX, footerY + footLineH*5);
         }
 
