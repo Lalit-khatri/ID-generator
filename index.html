@@ -1000,15 +1000,15 @@
 
             function drawDef(key, value, x, y) {
                 if(key) {
-                    ctx.font = 'bold 23px Arial, sans-serif';
+                    ctx.font = 'bold 22px Arial, sans-serif';
                     ctx.fillText(key, x, y);
                     const dashX = x + ctx.measureText(key).width;
                     ctx.fillText(" - ", dashX, y);
                     const textX = dashX + ctx.measureText(" - ").width;
-                    ctx.font = '23px Arial, sans-serif';
+                    ctx.font = '22px Arial, sans-serif';
                     ctx.fillText(value, x+45, y);
                 } else {
-                    ctx.font = '23px Arial, sans-serif';
+                    ctx.font = '22px Arial, sans-serif';
                     ctx.fillText(value, x + 45, y); 
                 }
             }
