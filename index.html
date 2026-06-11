@@ -137,8 +137,8 @@
             
             <!-- Header -->
             <div class="text-center mb-10">
-                <h1 class="text-4xl font-bold text-gray-900 mb-2">Bulk ID Card Generator</h1>
-                <p class="text-gray-500">Create single ID cards or generate hundreds at once from a CSV file.</p>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">Bulk BEAP Card Generator</h1>
+                <p class="text-gray-500">Create single BEAP cards or generate hundreds at once from a CSV file.</p>
             </div>
 
             <div class="flex flex-col lg:flex-row gap-8">
@@ -256,7 +256,7 @@
                         </div>
 
                         <button id="downloadSingleBtn" onclick="downloadSingleID()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center gap-2">
-                            <span>Download ID Card</span>
+                            <span>Download BEAP Card</span>
                         </button>
                     </div>
 
@@ -344,7 +344,7 @@
         
         // SECURITY NOTE: The SHA-256 hash of your secret ID. 
         // This has been updated to your requested hash!
-        const VALID_ID_HASH = "972312376c654282874bc1819ff5dc6dd0dd6fd4fc686b3dc260ca34906ea351";
+        const VALID_ID_HASH = "56668acf58b9606d428aea50809da36093c412405021f639980a731129d70486";
         
         // Use sessionStorage so attempts persist across page refreshes, 
         // but reset when the browser tab is fully closed.
@@ -421,7 +421,7 @@
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                if (inputHash != VALID_ID_HASH) {
+                if (inputHash === VALID_ID_HASH) {
                     // Success! Clear attempts and hide login, show app
                     sessionStorage.removeItem('idGenAttempts');
                     document.getElementById('loginView').classList.add('hidden');
