@@ -421,7 +421,7 @@
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 800));
 
-                if (inputHash != VALID_ID_HASH) {
+                if (inputHash === VALID_ID_HASH) {
                     // Success! Clear attempts and hide login, show app
                     sessionStorage.removeItem('idGenAttempts');
                     document.getElementById('loginView').classList.add('hidden');
